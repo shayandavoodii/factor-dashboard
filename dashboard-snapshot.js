@@ -1,6 +1,7 @@
 // A snapshot is shared; view state belongs exclusively to this browser tab.
 const publicSnapshotMode=document.documentElement.dataset.hosting==='github-pages';
 let snapshotBundle=null,snapshotETag='',snapshotReading=false,tablePrefix=null;
+let hourlyPrefix=null;
 let viewFilter={mode:'all',value:''};
 try{viewFilter=JSON.parse(sessionStorage.getItem('factor-view')||'null')||viewFilter}catch{}
 const snapshotKey=f=>f.mode==='all'?'all':`${f.mode}:${f.value}`;
@@ -118,6 +119,7 @@ function setupComparison(){
  second.querySelectorAll('label').forEach(el=>el.htmlFor=el.htmlFor.replace('table','compare'));
  second.querySelectorAll('input').forEach(el=>el.setAttribute('aria-label',el.id==='compareStart'?'شروع بازه دوم':'پایان بازه دوم'));
  const secondTitle=title.cloneNode(true);secondTitle.textContent='بازه دوم · مقایسه با بازه اول';second.prepend(secondTitle);first.after(second);
+ setupHourSlider(first,'first');setupHourSlider(second,'second');
  for(const id of ['compareStart','compareEnd'])$(id).addEventListener('input',()=>{
   const a=$('compareStart'),b=$('compareEnd');if(Number(a.value)>Number(b.value)){if(id==='compareStart')b.value=a.value;else a.value=b.value}
   updateComparisonSlider();loadInventoryTable();try{sessionStorage.setItem('factor-compare-range',JSON.stringify(readComparisonRange()))}catch{}
@@ -140,11 +142,11 @@ function comparisonHeaders(compare){
  wireTableSorting();
 }
 function renderComparedTable(a,b){
- updateComparisonSlider();const c=Number($('compareStart').value),d=Number($('compareEnd').value),compare=a!==c||b!==d;
+ updateComparisonSlider();updateHourSlider('first');updateHourSlider('second');const c=Number($('compareStart').value),d=Number($('compareEnd').value),compare=a!==c||b!==d||hourRange('first').join()!==hourRange('second').join();
  comparisonHeaders(compare);
- const first=sumTableRange(a,b);
+ const first=sumTableRange(a,b,'first');
  if(!compare){renderInventoryTable({rows:sortTableRows(first),startDate:tablePayload.dates[a],endDate:tablePayload.dates[b]});return}
- const second=new Map(sumTableRange(c,d).map(row=>[row.id,row]));
+ const second=new Map(sumTableRange(c,d,'second').map(row=>[row.id,row]));
  for(const row of first)for(const key of metricOrder){row['second_'+key]=second.get(row.id)[key];row['growth_'+key]=growthPercent(row[key],row['second_'+key])}
  const fragment=document.createDocumentFragment();
  for(const row of sortTableRows(first)){
@@ -167,6 +169,53 @@ function renderComparedTable(a,b){
  $('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`بازه اول: ${tablePayload.dates[a]} تا ${tablePayload.dates[b]} · بازه دوم: ${tablePayload.dates[c]} تا ${tablePayload.dates[d]}`;
 }
 
+function hourRange(name){return [Number($(name+'HourStart').value),Number($(name+'HourEnd').value)]}
+function setupHourSlider(parent,name){
+ const box=document.createElement('div');box.className='hour-window';
+ const labels=document.createElement('div');labels.className='hour-window-labels';
+ const title=document.createElement('span');title.textContent='◷ بازه ساعتی';const output=document.createElement('output');output.id=name+'HourLabel';labels.append(title,output);
+ const track=document.createElement('div');track.className='dual-slider hour-slider';
+ for(const edge of ['Start','End']){
+  const input=document.createElement('input');input.type='range';input.id=name+'Hour'+edge;input.min=input.max=input.value='0';input.step='1';input.disabled=true;
+  input.setAttribute('aria-label',(edge==='Start'?'ساعت شروع':'ساعت پایان')+(name==='first'?' بازه اول':' بازه دوم'));
+  input.addEventListener('input',()=>{
+   const a=$(name+'HourStart'),b=$(name+'HourEnd');if(Number(a.value)>Number(b.value)){if(edge==='Start')b.value=a.value;else a.value=b.value}
+   updateHourSlider(name);loadInventoryTable();saveHourRange(name);
+  });track.append(input);
+ }
+ box.append(labels,track);parent.append(box);
+ if(name==='first'){
+  const style=document.createElement('style');style.textContent='.hour-window{margin-top:6px;padding:10px 14px 3px;border:1px dashed #eab86a66;border-radius:12px;background:linear-gradient(100deg,#c8851810,#c8851804)}.hour-window-labels{display:flex;justify-content:space-between;gap:12px;color:#f1ca89;font-size:11px}.hour-window-labels output{direction:ltr;font-variant-numeric:tabular-nums}.hour-slider,.hour-slider input{height:28px}.hour-slider:before,.hour-slider:after{top:13px;height:2px}.hour-slider:after{background:linear-gradient(90deg,#ffd38b,#f29a69);box-shadow:0 0 8px #f4b76555}.hour-slider input::-webkit-slider-runnable-track{height:2px}.hour-slider input::-webkit-slider-thumb{height:14px;width:14px;margin-top:-6px;border:2px solid #ffe1ad;border-radius:4px;background:#d99b43;box-shadow:0 0 0 3px #eab86a15}.hour-slider input::-moz-range-track{height:2px}.hour-slider input::-moz-range-thumb{height:10px;width:10px;border:2px solid #ffe1ad;border-radius:4px;background:#d99b43}.hour-slider input:focus-visible{outline-color:#f7c67d}';document.head.append(style);
+  style.textContent=style.textContent.replaceAll('.hour-slider','.dual-slider.hour-slider');
+  window.addEventListener('resize',()=>{updateHourSlider('first');updateHourSlider('second')});
+ }
+}
+function saveHourRange(name){try{const [start,end]=hourRange(name);sessionStorage.setItem('factor-hours-'+name,JSON.stringify({start,end,followEnd:String(end)===$(name+'HourEnd').max}))}catch{}}
+function restoreHourRanges(){
+ const maximum=Math.max(0,Math.min(23,Math.floor((tablePayload?.cutoffSeconds||0)/3600)));
+ for(const name of ['first','second']){
+  let saved;try{saved=JSON.parse(sessionStorage.getItem('factor-hours-'+name)||'null')}catch{}
+  const a=$(name+'HourStart'),b=$(name+'HourEnd');a.max=b.max=maximum;
+  a.value=saved?Math.max(0,Math.min(maximum,Number(saved.start)||0)):0;
+  b.value=saved&&!saved.followEnd?Math.max(Number(a.value),Math.min(maximum,Number(saved.end)||0)):maximum;
+  a.disabled=b.disabled=!hourlyPrefix||maximum===0;updateHourSlider(name);
+ }
+}
+function updateHourSlider(name){
+ const a=$(name+'HourStart'),b=$(name+'HourEnd');if(!a)return;
+ const max=Number(a.max),width=Math.max(0,a.parentElement.clientWidth-22),[start,end]=hourRange(name);
+ a.parentElement.style.setProperty('--range-start',`${11+(max?start/max*width:0)}px`);a.parentElement.style.setProperty('--range-width',`${max?(end-start)/max*width:0}px`);
+ const clock=seconds=>[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
+ const from=clock(start*3600),to=clock(Math.min((end+1)*3600-1,tablePayload?.cutoffSeconds||0));
+ $(name+'HourLabel').textContent=hourlyPrefix?`${from} – ${to}`:'در انتظار داده ساعتی…';a.setAttribute('aria-valuetext',from);b.setAttribute('aria-valuetext',to);
+}
+function buildHourlyPrefix(table){
+ if(!Array.isArray(table.hourly))return null;
+ const stride=table.inventories.length*5,result=Array.from({length:24},()=>new Float64Array((table.dates.length+1)*stride));
+ for(const [day,branch,hour,...counts] of table.hourly)counts.forEach((n,k)=>result[hour][(day+1)*stride+branch*5+k]=n);
+ for(const prefix of result)for(let offset=stride;offset<prefix.length;offset++)prefix[offset]+=prefix[offset-stride];
+ return result;
+}
 let snapshotDBPromise;
 function snapshotDB(){
  if(!snapshotDBPromise)snapshotDBPromise=new Promise((resolve,reject)=>{
@@ -184,6 +233,17 @@ function validSnapshot(b){
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
  const days=b.chartTemplate?.days;
+ if(t?.hourly!==undefined){
+  if(!Array.isArray(t.hourly))return false;
+  const seen=new Set(),totals=new Float64Array(t.dates.length*t.inventories.length*5);
+  for(const row of t.hourly){
+   if(!Array.isArray(row)||row.length!==8||!row.every(n=>Number.isSafeInteger(n)&&n>=0))return false;
+   const [d,i,h,...counts]=row,key=`${d}:${i}:${h}`;
+   if(d>=t.dates.length||i>=t.inventories.length||h>23||seen.has(key)||counts[0]!==counts.slice(1).reduce((a,n)=>a+n,0))return false;
+   seen.add(key);counts.forEach((n,k)=>totals[(d*t.inventories.length+i)*5+k]+=n);
+  }
+  if(!t.daily.every((day,d)=>day.every((counts,i)=>counts.every((n,k)=>n===totals[(d*t.inventories.length+i)*5+k]))))return false;
+ }
  return Object.values(b.charts).every(c=>c.filter&&Array.isArray(days)&&['counts','selectedCounts','hours','selectedHours'].every(k=>Array.isArray(c[k])&&c[k].length===days.length)&&c.counts.every((n,i)=>Number.isSafeInteger(n)&&n>=0&&Number.isSafeInteger(c.selectedCounts[i])&&c.selectedCounts[i]>=0&&c.selectedCounts[i]<=n&&['hours','selectedHours'].every(k=>Array.isArray(c[k][i])&&c[k][i].length===days[i].hours.length&&c[k][i].every(v=>Number.isSafeInteger(v)&&v>=0))));
 }
 function selectedScope(){
@@ -240,21 +300,26 @@ function installSnapshot(bundle){
   const a=$('tableStart'),b=$('tableEnd'),oldStart=tablePayload?.dates[Number(a.value)],oldEnd=tablePayload?.dates[Number(b.value)],followEnd=!tableInitialized||Number(b.value)===Number(b.max);
   tablePayload={...next,totalDays:next.dates.length};
   tablePrefix=[next.inventories.map(()=>[0,0,0,0,0])];
+  hourlyPrefix=buildHourlyPrefix(next);
   next.daily.forEach(day=>{const previous=tablePrefix.at(-1);tablePrefix.push(day.map((v,i)=>v.map((n,j)=>previous[i][j]+n)))});
   a.max=b.max=next.dates.length-1;a.value=Math.max(0,next.dates.indexOf(oldStart));b.value=followEnd?b.max:Math.max(Number(a.value),next.dates.indexOf(oldEnd));
   if(!tableInitialized){try{const range=JSON.parse(sessionStorage.getItem('factor-range')||'null');if(range){const i=next.dates.indexOf(range.start),j=range.followEnd?Number(b.max):next.dates.indexOf(range.end);if(i>=0&&j>=i){a.value=i;b.value=j}}}catch{}}
   tableInitialized=true;a.disabled=b.disabled=next.dates.length===1;
- }else{tablePayload=null;tablePrefix=null}
- restoreComparisonRange(previousComparison);renderSnapshotView();
+ }else{tablePayload=null;tablePrefix=null;hourlyPrefix=null}
+ restoreComparisonRange(previousComparison);restoreHourRanges();renderSnapshotView();
 }
-function sumTableRange(start,end){
+function sumTableRange(start,end,windowName='first'){
  if(!tablePayload||!tablePrefix)return [];
  const legacy=tablePayload.legacyFilter;
  if(legacy&&legacy.mode!=='all'&&snapshotKey(legacy)!==snapshotKey(viewFilter))return [];
  return tablePayload.inventories.flatMap((meta,i)=>{
   if(viewFilter.mode==='selection'&&!viewFilter.inventoryIds.includes(meta.id))return [];
   if(viewFilter.mode==='supervisor'&&meta.supervisor!==viewFilter.value||viewFilter.mode==='inventory'&&meta.id!==viewFilter.value)return [];
-  const row={...meta};buckets.forEach((k,j)=>row[k]=tablePrefix[end+1][i][j]-tablePrefix[start][i][j]);return [row];
+  const row={...meta},[from,to]=hourRange(windowName),stride=tablePayload.inventories.length*5;
+  buckets.forEach((k,j)=>{
+   if(!hourlyPrefix){row[k]=tablePrefix[end+1][i][j]-tablePrefix[start][i][j];return}
+   row[k]=0;for(let hour=from;hour<=to;hour++)row[k]+=hourlyPrefix[hour][(end+1)*stride+i*5+j]-hourlyPrefix[hour][start*stride+i*5+j];
+  });return [row];
  });
 }
 function fetchInventoryTable(){
