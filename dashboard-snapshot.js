@@ -41,10 +41,11 @@ function setupInventoryMultiselect(){
 }
 function persistInventorySelection(){try{sessionStorage.setItem('factor-view',JSON.stringify(viewFilter))}catch{}}
 let tableSort=[];
-try{const saved=JSON.parse(sessionStorage.getItem('factor-table-sort')||'null');for(const entry of Array.isArray(saved)?saved:saved?[saved]:[]){if(entry&&buckets.includes(entry.key)&&['ascending','descending'].includes(entry.direction)&&!tableSort.length)tableSort.push(entry)}}catch{}
+const validSortKey=key=>buckets.includes(key)||/^(second|growth)_(total|low|mid|high|veryhigh)$/.test(key);
+try{const saved=JSON.parse(sessionStorage.getItem('factor-table-sort')||'null');for(const entry of Array.isArray(saved)?saved:saved?[saved]:[]){if(entry&&validSortKey(entry.key)&&['ascending','descending'].includes(entry.direction)&&!tableSort.length)tableSort.push(entry)}}catch{}
 function sortTableRows(rows){
  if(!tableSort.length)return rows;
- return [...rows].sort((a,b)=>{for(const {key,direction} of tableSort){const difference=(direction==='ascending'?1:-1)*((a[key]||0)-(b[key]||0));if(difference)return difference}return 0});
+ return [...rows].sort((a,b)=>{for(const {key,direction} of tableSort){if(a[key]==null||b[key]==null)return a[key]==null?(b[key]==null?0:1):-1;const difference=(direction==='ascending'?1:-1)*(a[key]-b[key]);if(difference)return difference}return 0});
 }
 function saveTableSorting(){
  try{sessionStorage.setItem('factor-table-sort',JSON.stringify(tableSort))}catch{}
@@ -67,9 +68,11 @@ function setupTableSorting(){
  const hint=document.createElement('span');hint.className='note';hint.textContent='با کلیک روی هر ستون، می‌توانید مرتب سازی را مدیریت کنید.';
  const status=document.createElement('span');status.id='tableSortStatus';status.className='note';status.setAttribute('role','status');
  toolbar.append(clear,hint,status);const scroll=document.querySelector('.inventory-table .table-scroll');scroll.before(toolbar);
- const headers=document.querySelectorAll('.inventory-table thead th');
- ['low','mid','high','veryhigh','total'].forEach((key,i)=>{
-  const header=headers[i+4],button=document.createElement('button'),arrow=document.createElement('span');
+ wireTableSorting();
+}
+function wireTableSorting(){
+ document.querySelectorAll('.inventory-table thead th[data-key]').forEach(header=>{
+  const key=header.dataset.key,button=document.createElement('button'),arrow=document.createElement('span');
   button.type='button';button.className='table-sort';button.dataset.tableSort=key;button.dataset.label=header.textContent;
   button.append(document.createTextNode(header.textContent));arrow.className='sort-arrow';arrow.setAttribute('aria-hidden','true');button.append(arrow);
   button.addEventListener('click',()=>{
@@ -80,6 +83,88 @@ function setupTableSorting(){
   header.replaceChildren(button);
  });
  updateTableSortHeaders();
+}
+
+const metricOrder=['low','mid','high','veryhigh','total'];
+let metricLabels=[],metadataLabels=[],comparisonLayout=null;
+const percentFormatter=new Intl.NumberFormat('fa-IR',{maximumFractionDigits:1});
+function growthPercent(first,second){return first===0?(second===0?0:null):100*(second-first)/first}
+function readComparisonRange(){
+ if(!tablePayload||!$('compareStart'))return null;
+ return {start:tablePayload.dates[Number($('compareStart').value)],end:tablePayload.dates[Number($('compareEnd').value)],followEnd:$('compareEnd').value===$('compareEnd').max};
+}
+function restoreComparisonRange(previous){
+ if(!tablePayload)return;
+ let saved=previous;try{saved ||= JSON.parse(sessionStorage.getItem('factor-compare-range')||'null')}catch{}
+ const a=$('compareStart'),b=$('compareEnd'),dates=tablePayload.dates;
+ a.max=b.max=dates.length-1;
+ const i=saved?dates.indexOf(saved.start):-1,j=saved?(saved.followEnd?dates.length-1:dates.indexOf(saved.end)):-1;
+ a.value=i>=0?i:$('tableStart').value;b.value=j>=Number(a.value)?j:$('tableEnd').value;
+ a.disabled=b.disabled=dates.length===1;updateComparisonSlider();
+}
+function updateComparisonSlider(){
+ const a=$('compareStart'),b=$('compareEnd');if(!a)return;
+ const max=Number(a.max),width=Math.max(0,a.parentElement.clientWidth-22);
+ a.parentElement.style.setProperty('--range-start',`${11+(max?Number(a.value)/max*width:0)}px`);
+ a.parentElement.style.setProperty('--range-width',`${max?(Number(b.value)-Number(a.value))/max*width:0}px`);
+ if(tablePayload)for(const input of [a,b]){const date=tablePayload.dates[Number(input.value)];$(input.id+'Date').textContent=date;input.setAttribute('aria-valuetext',date)}
+}
+function setupComparison(){
+ const headers=[...document.querySelectorAll('.inventory-table thead th')];metadataLabels=headers.slice(0,4).map(h=>h.textContent);metricLabels=headers.slice(4).map(h=>h.textContent);
+ headers.slice(4).forEach((h,i)=>h.dataset.key=metricOrder[i]);
+ const first=document.querySelector('.table-period'),second=first.cloneNode(true);
+ const title=document.createElement('strong');title.className='comparison-title';title.textContent='بازه اول · مبنای رشد';first.prepend(title);
+ second.querySelectorAll('[id]').forEach(el=>el.id=el.id.replace('table','compare'));
+ second.querySelectorAll('label').forEach(el=>el.htmlFor=el.htmlFor.replace('table','compare'));
+ second.querySelectorAll('input').forEach(el=>el.setAttribute('aria-label',el.id==='compareStart'?'شروع بازه دوم':'پایان بازه دوم'));
+ const secondTitle=title.cloneNode(true);secondTitle.textContent='بازه دوم · مقایسه با بازه اول';second.prepend(secondTitle);first.after(second);
+ for(const id of ['compareStart','compareEnd'])$(id).addEventListener('input',()=>{
+  const a=$('compareStart'),b=$('compareEnd');if(Number(a.value)>Number(b.value)){if(id==='compareStart')b.value=a.value;else a.value=b.value}
+  updateComparisonSlider();loadInventoryTable();try{sessionStorage.setItem('factor-compare-range',JSON.stringify(readComparisonRange()))}catch{}
+ });
+ window.addEventListener('resize',updateComparisonSlider);
+ const style=document.createElement('style');style.textContent='.comparison-title{display:block;font-size:12px;color:#b6ece2;margin-bottom:12px}.table-period{margin-bottom:16px}.growth-value{font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;display:inline-block;padding:7px 10px;border-radius:9px;background:#ffffff08}.growth-positive{color:#72edaa;background:#72edaa12}.growth-negative{color:#ff929c;background:#ff929c12}.growth-neutral{color:#c2cfdf}.comparison-table{min-width:2300px!important}.comparison-table th[data-key^="growth"]{color:#c8b5ff}.comparison-table td.metric-first{border-inline-start:1px solid #91b5ee35}';document.head.append(style);
+}
+function comparisonHeaders(compare){
+ if(comparisonLayout===compare)return;comparisonLayout=compare;
+ const row=document.createElement('tr');
+ for(const text of metadataLabels){const th=document.createElement('th');th.scope='col';th.textContent=text;row.append(th)}
+ metricOrder.forEach((key,i)=>{
+  for(const [prefix,label] of compare?[['','بازه اول'],['second_','بازه دوم'],['growth_','رشد ٪']]:[['','']]){
+   const th=document.createElement('th');th.scope='col';th.dataset.key=prefix+key;th.textContent=metricLabels[i]+(label?' · '+label:'');row.append(th);
+  }
+ });
+ document.querySelector('.inventory-table thead').replaceChildren(row);
+ document.querySelector('.inventory-table table').classList.toggle('comparison-table',compare);
+ if(!compare&&tableSort.some(s=>s.key.includes('_'))){tableSort=[];try{sessionStorage.setItem('factor-table-sort','[]')}catch{}}
+ wireTableSorting();
+}
+function renderComparedTable(a,b){
+ updateComparisonSlider();const c=Number($('compareStart').value),d=Number($('compareEnd').value),compare=a!==c||b!==d;
+ comparisonHeaders(compare);
+ const first=sumTableRange(a,b);
+ if(!compare){renderInventoryTable({rows:sortTableRows(first),startDate:tablePayload.dates[a],endDate:tablePayload.dates[b]});return}
+ const second=new Map(sumTableRange(c,d).map(row=>[row.id,row]));
+ for(const row of first)for(const key of metricOrder){row['second_'+key]=second.get(row.id)[key];row['growth_'+key]=growthPercent(row[key],row['second_'+key])}
+ const fragment=document.createDocumentFragment();
+ for(const row of sortTableRows(first)){
+  const tr=document.createElement('tr');
+  [row.name||row.id,row.state||'—',row.manager||'—',row.supervisor||'—'].forEach((text,i)=>{const cell=document.createElement(i===0?'th':'td');if(i===0)cell.scope='row';cell.textContent=text;tr.append(cell)});
+  for(const key of metricOrder){
+   for(const prefix of ['','second_','growth_']){
+    const td=document.createElement('td'),value=document.createElement('b'),n=row[prefix+key];td.dataset.metric=prefix+key;
+    if(prefix==='growth_'){
+     value.className='growth-value '+(n===null||n===0?'growth-neutral':n>0?'growth-positive':'growth-negative');
+     value.textContent=n===null?'—':(n>0?'+':'')+percentFormatter.format(n)+'٪';
+     value.title=n===null?'درصد رشد با مبنای صفر تعریف نمی‌شود.':'(بازه دوم − بازه اول) ÷ بازه اول × ۱۰۰';
+    }else{value.className=key==='total'?'table-total':'comparison-count';value.textContent=fmt(n);if(!prefix)td.className='metric-first'}
+    td.append(value);tr.append(td);
+   }
+  }
+  fragment.append(tr);
+ }
+ if(!first.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=19;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}
+ $('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`بازه اول: ${tablePayload.dates[a]} تا ${tablePayload.dates[b]} · بازه دوم: ${tablePayload.dates[c]} تا ${tablePayload.dates[d]}`;
 }
 
 let snapshotDBPromise;
@@ -149,6 +234,7 @@ function selectSnapshotFilter(mode,value='',event={}){
  renderSnapshotView();
 }
 function installSnapshot(bundle){
+ const previousComparison=readComparisonRange();
  snapshotBundle=bundle;additiveScopeCache.clear();const next=bundle.table;
  if(next){
   const a=$('tableStart'),b=$('tableEnd'),oldStart=tablePayload?.dates[Number(a.value)],oldEnd=tablePayload?.dates[Number(b.value)],followEnd=!tableInitialized||Number(b.value)===Number(b.max);
@@ -159,7 +245,7 @@ function installSnapshot(bundle){
   if(!tableInitialized){try{const range=JSON.parse(sessionStorage.getItem('factor-range')||'null');if(range){const i=next.dates.indexOf(range.start),j=range.followEnd?Number(b.max):next.dates.indexOf(range.end);if(i>=0&&j>=i){a.value=i;b.value=j}}}catch{}}
   tableInitialized=true;a.disabled=b.disabled=next.dates.length===1;
  }else{tablePayload=null;tablePrefix=null}
- renderSnapshotView();
+ restoreComparisonRange(previousComparison);renderSnapshotView();
 }
 function sumTableRange(start,end){
  if(!tablePayload||!tablePrefix)return [];
@@ -174,7 +260,7 @@ function sumTableRange(start,end){
 function fetchInventoryTable(){
  if(!tablePayload){$('tableRange').textContent='در انتظار اولین نسخه ذخیره‌شده جدول…';return}
  const a=Number($('tableStart').value),b=Number($('tableEnd').value);updateDualSlider();
- renderInventoryTable({rows:sortTableRows(sumTableRange(a,b)),startDate:tablePayload.dates[a],endDate:tablePayload.dates[b]});
+ renderComparedTable(a,b);
  const timestamp=new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(tablePayload.fetchedAt*1000));
  $('tableRange').textContent+=` · داده ذخیره‌شده: ${timestamp}`;
  const legacy=tablePayload.legacyFilter;
@@ -203,7 +289,7 @@ for(const id of ['tableStart','tableEnd'])$(id).addEventListener('input',()=>{
  if(tablePayload)try{sessionStorage.setItem('factor-range',JSON.stringify({start:tablePayload.dates[Number(a.value)],end:tablePayload.dates[Number(b.value)],followEnd:b.value===b.max}))}catch{}
 });
 window.addEventListener('resize',updateDualSlider);
-setupTableSorting();
+setupComparison();setupTableSorting();
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
 if(publicSnapshotMode){
