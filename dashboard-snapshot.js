@@ -164,6 +164,8 @@ function renderComparedTable(a,b){
      value.textContent=n===null?'—':(n>0?'+':'')+percentFormatter.format(n)+'٪';
      value.title=n===null?'درصد رشد با مبنای صفر تعریف نمی‌شود.':'(بازه دوم − بازه اول) ÷ بازه اول × ۱۰۰';
      td.append(value);
+    }else if(key==='total'){
+     value.className='table-total';value.textContent=fmt(n);td.append(value);if(!prefix)td.className='metric-first';
     }else{
      const total=row[prefix+'total'],share=total?100*n/total:0,cell=document.createElement('div'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');
      cell.className='range-cell';cell.style.setProperty('--bucket',({low:'#88baff',mid:'#7ee2c7',high:'#b7a0ff',veryhigh:'#ffcf88',total:'#83e7d3'})[key]);
