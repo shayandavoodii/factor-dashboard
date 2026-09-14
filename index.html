@@ -255,6 +255,7 @@ $('locationSearch').addEventListener('input',e=>renderLocationButtons(e.target.v
  .inventory-table tbody tr:hover .range-cell b{color:#fff}
 }
 @media(prefers-reduced-motion:reduce){.inventory-table tbody tr,.inventory-table tbody tr:hover{transform:none!important;transition:none!important}}
+<style>.inventory-table thead th:first-child,.inventory-table tbody th:first-child{position:sticky;right:0;z-index:4;background:#293b56}.inventory-table tbody tr:nth-child(even) th:first-child{background:#1d304a}.inventory-table tbody tr th:first-child{box-shadow:-6px 0 12px #07152540}</style>
 </style>
 <script>
 let tablePayload=null,tableTimer=0,tableRequest=0,tableVersionKey='',tableInitialized=false;
