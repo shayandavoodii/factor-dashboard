@@ -257,6 +257,12 @@ $('locationSearch').addEventListener('input',e=>renderLocationButtons(e.target.v
 @media(prefers-reduced-motion:reduce){.inventory-table tbody tr,.inventory-table tbody tr:hover{transform:none!important;transition:none!important}}
 .inventory-table table{table-layout:fixed}
 .inventory-table thead th{white-space:normal;overflow-wrap:anywhere}
+.inventory-table table.comparison-table{min-width:2220px!important}
+.inventory-table th,.inventory-table td{padding-inline:8px}
+.inventory-table .range-cell{min-width:0;column-gap:4px}
+.inventory-table .range-cell b{font-size:13px}
+.inventory-table .range-cell small{font-size:9px}
+.inventory-table thead th .table-sort{margin:0;padding:4px 0;overflow-wrap:anywhere;text-align:right;font-size:11px}
 .inventory-table .table-sort{width:100%;white-space:normal;height:96px;min-height:96px;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.5}
 .inventory-table .sort-arrow{display:block;min-height:16px}
 .inventory-table thead{z-index:5}

@@ -139,7 +139,7 @@ function comparisonHeaders(compare){
  document.querySelector('.inventory-table thead').replaceChildren(row);
  document.querySelector('.inventory-table table').classList.toggle('comparison-table',compare);
  const table=document.querySelector('.inventory-table table'),cols=document.createElement('colgroup');
- const widths=[220,140,150,150,...metricOrder.flatMap(()=>compare?[170,170,145]:[170])];
+ const widths=[185,105,115,115,...metricOrder.flatMap(()=>compare?[120,120,100]:[125])];
  widths.forEach(width=>{const col=document.createElement('col');col.style.width=width+'px';cols.append(col)});
  table.querySelector('colgroup')?.remove();table.prepend(cols);table.style.width=widths.reduce((a,n)=>a+n,0)+'px';
  if(!compare&&tableSort.some(s=>s.key.includes('_'))){tableSort=[];try{sessionStorage.setItem('factor-table-sort','[]')}catch{}}
