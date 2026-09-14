@@ -255,7 +255,18 @@ $('locationSearch').addEventListener('input',e=>renderLocationButtons(e.target.v
  .inventory-table tbody tr:hover .range-cell b{color:#fff}
 }
 @media(prefers-reduced-motion:reduce){.inventory-table tbody tr,.inventory-table tbody tr:hover{transform:none!important;transition:none!important}}
-<style>.inventory-table thead th:first-child,.inventory-table tbody th:first-child{position:sticky;right:0;z-index:4;background:#293b56}.inventory-table tbody tr:nth-child(even) th:first-child{background:#1d304a}.inventory-table tbody tr th:first-child{box-shadow:-6px 0 12px #07152540}</style>
+.inventory-table table{table-layout:fixed}
+.inventory-table thead th{white-space:normal;overflow-wrap:anywhere}
+.inventory-table .table-sort{width:100%;white-space:normal;height:96px;min-height:96px;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.5}
+.inventory-table .sort-arrow{display:block;min-height:16px}
+.inventory-table thead{z-index:5}
+.inventory-table thead th:first-child{position:sticky;top:auto;right:0;z-index:6;background:#293b56}
+.inventory-table tbody th:first-child{position:sticky;right:0;z-index:2;background:#192b44;box-shadow:-6px 0 12px #07152540;overflow-wrap:anywhere}
+.inventory-table tbody tr:nth-child(even) th:first-child{background:#1d304a}
+.inventory-table tbody tr:hover th:first-child{background:#304d65}
+.inventory-table tbody tr,.inventory-table tbody tr:not(:has(.table-empty)):hover{transform:none;position:static}
+.inventory-table .range-cell b,.inventory-table .table-total{transition:transform .24s}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.inventory-table tbody tr:hover .range-cell b,.inventory-table tbody tr:hover .table-total{transform:scale(1.06)}}
 </style>
 <script>
 let tablePayload=null,tableTimer=0,tableRequest=0,tableVersionKey='',tableInitialized=false;

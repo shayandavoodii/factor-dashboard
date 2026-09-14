@@ -138,6 +138,10 @@ function comparisonHeaders(compare){
  });
  document.querySelector('.inventory-table thead').replaceChildren(row);
  document.querySelector('.inventory-table table').classList.toggle('comparison-table',compare);
+ const table=document.querySelector('.inventory-table table'),cols=document.createElement('colgroup');
+ const widths=[220,140,150,150,...metricOrder.flatMap(()=>compare?[170,170,145]:[170])];
+ widths.forEach(width=>{const col=document.createElement('col');col.style.width=width+'px';cols.append(col)});
+ table.querySelector('colgroup')?.remove();table.prepend(cols);table.style.width=widths.reduce((a,n)=>a+n,0)+'px';
  if(!compare&&tableSort.some(s=>s.key.includes('_'))){tableSort=[];try{sessionStorage.setItem('factor-table-sort','[]')}catch{}}
  wireTableSorting();
 }
@@ -159,8 +163,13 @@ function renderComparedTable(a,b){
      value.className='growth-value '+(n===null||n===0?'growth-neutral':n>0?'growth-positive':'growth-negative');
      value.textContent=n===null?'—':(n>0?'+':'')+percentFormatter.format(n)+'٪';
      value.title=n===null?'درصد رشد با مبنای صفر تعریف نمی‌شود.':'(بازه دوم − بازه اول) ÷ بازه اول × ۱۰۰';
-    }else{value.className=key==='total'?'table-total':'comparison-count';value.textContent=fmt(n);if(!prefix)td.className='metric-first'}
-    td.append(value);tr.append(td);
+     td.append(value);
+    }else{
+     const total=row[prefix+'total'],share=total?100*n/total:0,cell=document.createElement('div'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');
+     cell.className='range-cell';cell.style.setProperty('--bucket',({low:'#88baff',mid:'#7ee2c7',high:'#b7a0ff',veryhigh:'#ffcf88',total:'#83e7d3'})[key]);
+     value.className=key==='total'?'table-total':'comparison-count';value.textContent=fmt(n);percent.textContent=fmt(share)+'٪';percent.title='درصد از کل فاکتورهای همین شعبه در همین بازه';bar.style.width=`${Math.max(0,Math.min(100,share))}%`;track.setAttribute('aria-hidden','true');track.append(bar);cell.append(value,percent,track);td.append(cell);if(!prefix)td.className='metric-first';
+    }
+    tr.append(td);
    }
   }
   fragment.append(tr);
