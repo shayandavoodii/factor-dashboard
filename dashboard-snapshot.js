@@ -108,7 +108,7 @@ function updateComparisonSlider(){
  const max=Number(a.max),width=Math.max(0,a.parentElement.clientWidth-22);
  a.parentElement.style.setProperty('--range-start',`${11+(max?Number(a.value)/max*width:0)}px`);
  a.parentElement.style.setProperty('--range-width',`${max?(Number(b.value)-Number(a.value))/max*width:0}px`);
- if(tablePayload)for(const input of [a,b]){const date=tablePayload.dates[Number(input.value)];$(input.id+'Date').textContent=date;input.setAttribute('aria-valuetext',date)}
+ if(tablePayload){for(const input of [a,b]){const date=tablePayload.dates[Number(input.value)];$(input.id+'Date').textContent=date;input.setAttribute('aria-valuetext',date)}setPeriodDayCaption('comparePeriodDays',a,b)}
 }
 function setupComparison(){
  const headers=[...document.querySelectorAll('.inventory-table thead th')];metadataLabels=headers.slice(0,4).map(h=>h.textContent);metricLabels=headers.slice(4).map(h=>h.textContent);
