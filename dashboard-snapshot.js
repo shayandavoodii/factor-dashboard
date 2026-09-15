@@ -66,7 +66,7 @@ function updateTableSortHeaders(){
 function setupTableSorting(){
  const toolbar=document.createElement('div');toolbar.className='table-sort-controls';
  const clear=document.createElement('button');clear.type='button';clear.id='clearTableSort';clear.textContent='حذف مرتب‌سازی';clear.addEventListener('click',()=>{tableSort=[];saveTableSorting()});
- const hint=document.createElement('span');hint.className='note';hint.textContent='با کلیک روی هر ستون، می‌توانید مرتب سازی را مدیریت کنید.';
+ const hint=document.createElement('span');hint.className='note';hint.textContent='با کلیک روی سرستون، می‌توانید مرتب سازی را مدیریت کنید.';
  const status=document.createElement('span');status.id='tableSortStatus';status.className='note';status.setAttribute('role','status');
  toolbar.append(clear,hint,status);const scroll=document.querySelector('.inventory-table .table-scroll');scroll.before(toolbar);
  wireTableSorting();
