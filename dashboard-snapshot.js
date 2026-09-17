@@ -281,7 +281,7 @@ function renderSnapshotView(){
  const scope=selectedScope(),chart=chartForScope(scope);
  if(chart){lastSaved=chart;draw(chart);$('filterStatus').textContent='';renderFetchStatus()}
  else{
-  lastSaved=null;
+  lastSaved=null;chartView.data=null;
   renderInventoryFilters({inventoryFilter:scope,inventoryOptions:snapshotBundle.chartTemplate?.inventoryOptions||snapshotBundle.table?.inventories||[]});
   document.querySelectorAll('.cards .value').forEach(e=>e.textContent='—');
   for(const id of ['todayNote','specialTodayNote','delta','specialDelta','specialDeltaNote','selectedToday','selectedShare','selectedMean','hourDetail'])if($(id))$(id).textContent='';
@@ -365,7 +365,98 @@ for(const id of ['tableStart','tableEnd'])$(id).addEventListener('input',()=>{
  if(tablePayload)try{sessionStorage.setItem('factor-range',JSON.stringify({start:tablePayload.dates[Number(a.value)],end:tablePayload.dates[Number(b.value)],followEnd:b.value===b.max}))}catch{}
 });
 window.addEventListener('resize',updateDualSlider);
-setupComparison();setupTableSorting();
+const chartView={data:null,start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+function chartClamp(){
+ const n=chartView.data?.days.length||1;chartView.span=Math.max(Math.min(3,n),Math.min(n,chartView.span));chartView.start=Math.max(0,Math.min(n-chartView.span,chartView.start));
+ chartView.scale=Math.max(.15,Math.min(20,chartView.scale));
+}
+function chartSchedule(){cancelAnimationFrame(chartView.frame);chartView.frame=requestAnimationFrame(()=>paintInteractiveChart())}
+function chartZoom(factor,anchor=.5){
+ const position=chartView.start+(chartView.span-1)*anchor;chartView.span*=factor;chartClamp();chartView.start=position-(chartView.span-1)*anchor;chartClamp();chartView.latest=chartView.start>=chartView.data.days.length-chartView.span-.01;chartSchedule();
+}
+function renderInteractiveChart(data){
+ const previousDate=chartView.data?.days[Math.floor(chartView.start)]?.date;
+ chartView.data=data;
+ if(!chartView.initialized){chartView.span=Math.max(3,Math.floor(($('plot').clientWidth||1000)/95));chartView.initialized=true}
+ if(chartView.latest)chartView.start=data.days.length-chartView.span;
+ else if(previousDate){const index=data.days.findIndex(day=>day.date===previousDate);if(index>=0)chartView.start=index+(chartView.start%1)}
+ chartClamp();paintInteractiveChart();
+}
+function paintInteractiveChart(){
+ const data=chartView.data;if(!data?.days.length)return;
+ chartClamp();const svg=$('plot');svg.replaceChildren();$('tip').hidden=true;
+ const W=svg.clientWidth||1000,H=400,L=18,R=W-84,T=30,B=326;
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+ const first=Math.floor(chartView.start),last=Math.min(data.days.length-1,Math.ceil(chartView.start+chartView.span-1));
+ const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,data.selectedMean,...visible.flatMap(d=>[d.count,d.selectedCount]))*1.18*chartView.scale;
+ const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
+ chartView.geometry={W,H,L,R,T,B,x,y};
+ const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#bdcde6','font-size':11,...attrs},parent);node.textContent=value;return node};
+ const defs=add('defs',{}),clip=add('clipPath',{id:'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
+ const series=add('g',{'clip-path':'url(#chart-window-clip)'});
+ for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#ffffff18'});text(R+12,y(value)+4,fmt(value))}
+ for(const [value,color,title] of [[data.mean,'#d1a4ff','میانگین کل'],[data.selectedMean,'#ffad75','میانگین حامی']]){
+  add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:color,'stroke-dasharray':'6 6'},series);
+  text(L+8,Math.max(T+12,Math.min(B-5,y(value)-7)),`${title}: ${fmt(value)}`,{fill:color,'font-size':10},series);
+ }
+ const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
+ for(const [field,color,cls,offset] of [['count','#82ffe3','total',-13],['selectedCount','#ffbd8c','selected',21]]){
+  const path=visible.map((d,j)=>`${j?'L':'M'} ${x(first+j)} ${y(d[field])}`).join(' ');
+  add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},series);
+  visible.forEach((day,j)=>{
+   const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3,fill:'#20324c',stroke:color,'stroke-width':2,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
+   dot.addEventListener('focus',()=>chartTooltip(i));dot.addEventListener('blur',()=>{$('tip').hidden=true});
+   if(i%labelStep===0)text(x(i),y(day[field])+offset,fmt(day[field]),{class:cls+'-point-value',fill:color,'text-anchor':'middle','font-weight':700,stroke:'#20324c','stroke-width':3,'paint-order':'stroke'},series);
+  });
+ }
+ for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#ffda92':'#bdcde6'})}
+ const axisX=add('rect',{x:L,y:B+2,width:R-L,height:H-B-2,fill:'transparent',class:'chart-x-axis'});axisX.style.cursor='ew-resize';
+ const axisY=add('rect',{x:R+1,y:T,width:W-R-1,height:B-T,fill:'transparent',class:'chart-y-axis'});axisY.style.cursor='ns-resize';
+ text((L+R)/2,H-10,'↔ برای تغییر مقیاس زمان، محور را بکشید',{'text-anchor':'middle','font-size':10,fill:'#879bb7','pointer-events':'none'});
+ const scroll=$('chartScroll');scroll.max=Math.max(0,data.days.length-chartView.span);scroll.value=chartView.start;scroll.disabled=Number(scroll.max)===0;
+ $('chartWindow').textContent=`${data.days[Math.ceil(chartView.start)].persian} تا ${data.days[Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1))].persian}`;
+ scroll.setAttribute('aria-valuetext',$('chartWindow').textContent);
+}
+function chartTooltip(index){
+ const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
+ drawHours(day,data);const tip=$('tip');tip.replaceChildren();
+ for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`حاوی بارکد حامی: ${fmt(day.selectedCount)}`,`سهم حامی: ${share(day.selectedCount,day.count)}`,`کل نسبت به میانگین: ${percent(day.count,data.mean)}`,`حامی نسبت به میانگین: ${percent(day.selectedCount,data.selectedMean)}`,previous?`حامی نسبت به روز قبل: ${percent(day.selectedCount,previous.selectedCount)}`:'نخستین روز دوره',`منبع: ${source(day.source)} · از 00:00 تا ${data.windowEnd}`]){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ tip.hidden=false;tip.style.top='80px';tip.style.left='20px';
+}
+function setupChartNavigation(){
+ const svg=$('plot'),toolbar=document.createElement('div');toolbar.className='chart-navigation';
+ for(const [id,title,action] of [
+  ['chartZoomIn','بزرگ‌نمایی +',()=>chartZoom(.75)],['chartZoomOut','کوچک‌نمایی −',()=>chartZoom(1.35)],
+  ['chartLatest','آخرین روزها',()=>{chartView.span=Math.max(3,Math.floor(svg.clientWidth/95));chartView.start=chartView.data.days.length-chartView.span;chartView.latest=true;chartView.scale=1;chartSchedule()}],
+  ['chartAll','کل دوره',()=>{chartView.span=chartView.data.days.length;chartView.start=0;chartView.scale=1;chartView.latest=true;chartSchedule()}],
+  ['chartAutoY','مقیاس خودکار ارتفاع',()=>{chartView.scale=1;chartSchedule()}]]){
+  const button=document.createElement('button');button.type='button';button.id=id;button.textContent=title;button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
+ }
+ const status=document.createElement('span');status.id='chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
+ const scroll=document.createElement('input');scroll.type='range';scroll.id='chartScroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
+ const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · کشیدن محور راست: تغییر مقیاس ارتفاع · دوبار کلیک: بازنشانی';scroll.after(hint);
+ scroll.addEventListener('input',()=>{chartView.start=Number(scroll.value);chartView.latest=chartView.start>=Number(scroll.max)-.01;chartSchedule()});
+ svg.style.height='400px';svg.style.direction='ltr';svg.style.touchAction='pan-y';svg.style.userSelect='none';svg.style.cursor='grab';svg.setAttribute('tabindex','0');svg.setAttribute('aria-label','نمودار تعاملی؛ کلیدهای چپ و راست برای پیمایش، مثبت و منفی برای بزرگ‌نمایی');
+ const point=e=>{const r=svg.getBoundingClientRect(),g=chartView.geometry;return {x:(e.clientX-r.left)*g.W/r.width,y:(e.clientY-r.top)*g.H/r.height}};
+ svg.addEventListener('wheel',e=>{if(!chartView.data)return;e.preventDefault();const p=point(e),g=chartView.geometry;if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY)){chartView.start+=(e.deltaX||e.deltaY)*chartView.span/600;chartClamp();chartView.latest=false;chartSchedule()}else if(p.x>g.R){chartView.scale*=Math.exp(e.deltaY*.002);chartClamp();chartSchedule()}else chartZoom(Math.exp(Math.max(-1,Math.min(1,e.deltaY*.002))),Math.max(0,Math.min(1,(p.x-g.L)/(g.R-g.L))))},{passive:false});
+ svg.addEventListener('pointerdown',e=>{if(!chartView.data||e.button!==0)return;const p=point(e),g=chartView.geometry;chartView.drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:chartView.start,span:chartView.span,scale:chartView.scale,mode:p.x>g.R?'y':p.y>g.B?'x':'pan'};try{svg.setPointerCapture(e.pointerId)}catch{}$('tip').hidden=true});
+ svg.addEventListener('pointermove',e=>{
+  if(!chartView.data)return;const drag=chartView.drag,g=chartView.geometry;
+  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+   if(drag.mode==='y')chartView.scale=drag.scale*Math.exp(dy/150);
+   else if(drag.mode==='x'){const right=drag.start+drag.span;chartView.span=drag.span*Math.exp(-dx/200);chartClamp();chartView.start=right-chartView.span;chartView.latest=right>=chartView.data.days.length-.01}
+   else{chartView.start=drag.start-dx*(drag.span-1)/(g.R-g.L);chartView.latest=false}
+   chartClamp();chartSchedule();
+  }else{const p=point(e);if(p.x>=g.L&&p.x<=g.R&&p.y>=g.T&&p.y<=g.B)chartTooltip(Math.max(0,Math.min(chartView.data.days.length-1,Math.round(chartView.start+(p.x-g.L)/(g.R-g.L)*(chartView.span-1)))));else $('tip').hidden=true}
+ });
+ const finish=e=>{if(chartView.drag?.id===e.pointerId){chartView.drag=null;if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId)}};
+ svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);svg.addEventListener('lostpointercapture',()=>chartView.drag=null);svg.addEventListener('pointerleave',()=>{if(!chartView.drag)$('tip').hidden=true});
+ svg.addEventListener('dblclick',()=>$('chartLatest').click());
+ svg.addEventListener('keydown',e=>{if(!chartView.data)return;if(['ArrowLeft','ArrowRight','+','=','-','Home','End'].includes(e.key)){e.preventDefault();if(['+','='].includes(e.key))chartZoom(.75);else if(e.key==='-')chartZoom(1.35);else{chartView.start=e.key==='Home'?0:e.key==='End'?chartView.data.days.length-chartView.span:chartView.start+(e.key==='ArrowRight'?1:-1)*Math.max(1,chartView.span/4);chartClamp();chartView.latest=e.key==='End';chartSchedule()}}});
+ new ResizeObserver(()=>{if(chartView.data)chartSchedule()}).observe(svg);
+ const style=document.createElement('style');style.textContent='.chart-navigation{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:18px}.chart-navigation button{padding:7px 10px;border-radius:8px;background:#203752;color:#caeee8;font-size:11px;box-shadow:none}.chart-navigation button:before{display:none}.chart-navigation button:hover{transform:none;background:#30536a}#chartScroll{width:100%;direction:ltr;accent-color:#68dbc6;height:24px;margin:2px 0 8px}#plot{overflow:hidden}';document.head.append(style);
+}
+setupChartNavigation();setupComparison();setupTableSorting();
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
 if(publicSnapshotMode){

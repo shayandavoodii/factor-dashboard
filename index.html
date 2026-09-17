@@ -113,45 +113,7 @@ function draw(data){
  $('deltaNote').textContent=`${fmt(Math.abs(today.count-mean))} فاکتور ${today.count>=mean?'بیشتر':'کمتر'} از میانگین در همین بازه`;
  $('window').textContent=data.cutoffSeconds===0?'هنوز بازه‌ای برای مقایسه وجود ندارد؛ مقایسه پس از ساعت ۰۲:۰۰ آغاز می‌شود.':`بازه همه روزها: از ${isolate('00:00:00')} تا پیش از ${isolate(data.windowEnd)}؛ دو ساعت قبل از زمان سرور.`;
  drawHours(today,data);
- const svg=$('plot');svg.replaceChildren();$('tip').hidden=true;
- const L=45,R=1005,T=28,B=350,max=Math.max(1,...days.map(d=>d.count),mean)*1.16;
- const x=i=>L+i*(R-L)/(days.length-1),y=n=>B-n/max*(B-T);
- const defs=el('defs',{}),gradient=el('linearGradient',{id:'fill',x1:0,y1:0,x2:0,y2:1},defs);
- el('stop',{offset:'0%','stop-color':'#55f3dc','stop-opacity':.3},gradient);el('stop',{offset:'100%','stop-color':'#55f3dc','stop-opacity':0},gradient);
- el('rect',{x:x(days.length-1)-28,y:T,width:56,height:B-T,rx:12,fill:'#ffd99512'});
- for(let i=0;i<=4;i++){const value=max*i/4;el('line',{x1:L,y1:y(value),x2:R,y2:y(value),stroke:'#ffffff16'});label(R+14,y(value)+4,fmt(value),{'text-anchor':'start'})}
- const path=days.map((d,i)=>`${i?'L':'M'} ${x(i)} ${y(d.count)}`).join(' ');
- el('path',{d:`${path} L ${L} ${B} L ${R} ${B} Z`,fill:'url(#fill)'});
- el('line',{x1:L,y1:y(mean),x2:R,y2:y(mean),stroke:'#d1a4ff','stroke-width':2,'stroke-dasharray':'7 7'});
- label((L+R)/2,y(mean)-12,`میانگین کل ${fmt(mean)}`,{'text-anchor':'middle',fill:'#e2bfff'});
- el('line',{class:'selected-mean',x1:L,y1:y(data.selectedMean),x2:R,y2:y(data.selectedMean),stroke:'#ffad75','stroke-width':2,'stroke-dasharray':'7 7'});
- label(L+(R-L)*.25,y(data.selectedMean)-12,`میانگین حامی ${fmt(data.selectedMean)}`,{'text-anchor':'middle',fill:'#ffd2af'});
- el('path',{class:'total-series',d:path,fill:'none',stroke:'#55f3dc','stroke-width':3,'stroke-linejoin':'round'});
- const selectedPath=days.map((d,i)=>`${i?'L':'M'} ${x(i)} ${y(d.selectedCount)}`).join(' ');
- el('path',{class:'selected-series',d:selectedPath,fill:'none',stroke:'#ffad75','stroke-width':3,'stroke-linejoin':'round'});
- const guide=el('line',{x1:L,x2:L,y1:T,y2:B,stroke:'#ffffff70','stroke-dasharray':'3 5',visibility:'hidden'});
- function show(i){
-  const d=days[i],previous=days[i-1];drawHours(d,data);guide.setAttribute('x1',x(i));guide.setAttribute('x2',x(i));guide.setAttribute('visibility','visible');
-  const tip=$('tip');tip.replaceChildren();const title=document.createElement('strong');title.textContent=`${isolate(d.persian)}${d.today?' · امروز':''}`;tip.append(title);
-  for(const text of [`تاریخ میلادی: ${isolate(d.date)}`,`کل فاکتورها: ${fmt(d.count)}`,`حاوی بارکد حامی: ${fmt(d.selectedCount)} فاکتور`, `سهم حامی از کل: ${isolate(share(d.selectedCount,d.count))}`,`کل نسبت به میانگین گذشته: ${isolate(percent(d.count,mean))}`,`حامی نسبت به میانگین گذشته: ${isolate(percent(d.selectedCount,data.selectedMean))}`,previous?`حامی نسبت به روز قبل: ${isolate(percent(d.selectedCount,previous.selectedCount))}`:'نخستین روز در بازه مقایسه',`منبع: ${source(d.source)} · از ${isolate('00:00')} تا ${isolate(data.windowEnd)}`]){const row=document.createElement('div');row.textContent=text;tip.append(row)}
-  tip.hidden=false;const chart=svg.parentElement,rect=svg.getBoundingClientRect(),chartRect=chart.getBoundingClientRect();
-  tip.style.left=Math.max(8,Math.min(chart.clientWidth-tip.offsetWidth-10,rect.left-chartRect.left+rect.width*x(i)/1100+15))+'px';tip.style.top='65px';
- }
- function hide(){$('tip').hidden=true;guide.setAttribute('visibility','hidden')}
- days.forEach((d,i)=>{
-  label(x(i),B+24,`${fa(d.persian)}${d.today?' · امروز':''}`,{'text-anchor':'end','font-size':10,fill:d.today?'#ffda92':'#bdcde6',transform:`rotate(-90 ${x(i)} ${B+24})`});
-  const dot=el('circle',{class:'total-point',cx:x(i),cy:y(d.count),r:d.today?7:4,fill:d.today?'#ffda92':'#24425a',stroke:d.today?'#ffe4af':'#55f3dc','stroke-width':2,tabindex:0,role:'img','aria-label':`${fa(d.persian)}: ${fmt(d.count)} فاکتور یکتا؛ میانگین دوره ${fmt(mean)}`});
-  dot.addEventListener('focus',()=>show(i));dot.addEventListener('blur',hide);
-  const selectedDot=el('circle',{class:'selected-point',cx:x(i),cy:y(d.selectedCount),r:d.today?6:4,fill:d.today?'#ffd2af':'#523e36',stroke:'#ffad75','stroke-width':2,tabindex:0,role:'img','aria-label':`${fa(d.persian)}: ${fmt(d.selectedCount)} فاکتور حاوی بارکد حامی؛ سهم از کل ${share(d.selectedCount,d.count)}`});
-  selectedDot.addEventListener('focus',()=>show(i));selectedDot.addEventListener('blur',hide);
- });
- days.forEach((d,i)=>{
-  const style={'text-anchor':'middle','font-size':13,'font-weight':700,stroke:'#20324c','stroke-width':4,'stroke-linejoin':'round','paint-order':'stroke','pointer-events':'none'};
-  label(x(i),y(d.count)-14,fmt(d.count),{...style,class:'total-point-value',fill:'#82ffe3'});
-  label(x(i),y(d.selectedCount)+21,fmt(d.selectedCount),{...style,class:'selected-point-value',fill:'#ffbd8c'});
- });
- svg.onpointermove=e=>{const rect=svg.getBoundingClientRect(),px=(e.clientX-rect.left)/rect.width*1100;show(Math.max(0,Math.min(days.length-1,Math.round((px-L)/(R-L)*(days.length-1)))))};
- svg.onpointerleave=hide;
+ renderInteractiveChart(data);
 }
 function drawHours(day,data){
  $('hourTitle').textContent=`تعداد فاکتورها به تفکیک ساعت · ${isolate(day.persian)}${day.today?' · امروز':''} · ${source(day.source)}`;
