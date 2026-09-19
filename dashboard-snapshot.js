@@ -421,7 +421,13 @@ function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  drawHours(day,data);const tip=$('tip');tip.replaceChildren();
  for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`حاوی بارکد حامی: ${fmt(day.selectedCount)}`,`سهم حامی: ${share(day.selectedCount,day.count)}`,`کل نسبت به میانگین: ${percent(day.count,data.mean)}`,`حامی نسبت به میانگین: ${percent(day.selectedCount,data.selectedMean)}`,previous?`حامی نسبت به روز قبل: ${percent(day.selectedCount,previous.selectedCount)}`:'نخستین روز دوره',`منبع: ${source(day.source)} · از 00:00 تا ${data.windowEnd}`]){const line=document.createElement('div');line.textContent=value;tip.append(line)}
- tip.hidden=false;tip.style.top='80px';tip.style.left='20px';
+ tip.hidden=false;
+ const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
+ const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
+ const gap=12;let left=px+gap,top=py-tip.offsetHeight-gap;
+ left=Math.max(8,Math.min(left,plot.clientWidth-tip.offsetWidth-8));
+ top=Math.max(8,Math.min(top,plot.clientHeight-tip.offsetHeight-8));
+ tip.style.left=`${left}px`;tip.style.top=`${top}px`;
 }
 function setupChartNavigation(){
  const svg=$('plot'),toolbar=document.createElement('div');toolbar.className='chart-navigation';
