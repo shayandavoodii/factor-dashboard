@@ -27,7 +27,7 @@
 </div>
 <div class="selected-summary"><strong>فاکتورهای حاوی بارکدهای حامی</strong><span id="selectedToday">در انتظار دریافت داده‌ها</span><span id="selectedShare"></span><span id="selectedMean"></span></div>
 <section class="chart"><div class="chart-top"><div class="chart-title">روند کل فاکتورها و فاکتورهای شامل برند حامی</div><div class="legend"><span>کل فاکتورها</span><span class="selected-legend">حاوی بارکد حامی</span><span class="total-mean-legend">میانگین کل دوره</span><span class="selected-mean-legend">میانگین حامی دوره</span></div></div><svg id="plot" viewBox="0 0 1100 470" role="img" aria-label="مقایسه تعداد کل فاکتورها با فاکتورهای حاوی حداقل یک بارکد حامی و میانگین دوره از ۱۴۰۵/۰۵/۱۴؛ ترتیب روزها از چپ به راست"><text x="550" y="210" text-anchor="middle" class="empty">در حال دریافت تعداد فاکتورها…</text></svg><div id="tip" class="tip" hidden></div></section>
-<section class="chart hourly"><div class="chart-top"><div class="chart-title" id="hourTitle">تعداد فاکتورها به تفکیک ساعت</div><div class="note">جزئیات هر ساعت در تاریخ حامی · ستون هاشورخورده مربوط به ساعت ناتمام است</div></div><div id="hours" class="hour-bars"></div><div id="hourDetail" class="note" aria-live="polite"></div></section><footer><span>فاکتورها  · تمام روزها از OLAP فروش.<br>پایان بازه برای همه روزها یکسان و دو ساعت قبل از زمان سرور است. زمان‌های نامشخص محاسبه نمی‌شوند.</span><span id="status" role="status" aria-live="polite">در حال اتصال به سرویس داده…</span></footer></main>
+<section class="chart hourly"><div class="chart-top"><div class="chart-title" id="hourTitle">تعداد فاکتورها به تفکیک ساعت</div><div class="note">جزئیات هر ساعت در تاریخ حامی · ستون هاشورخورده مربوط به ساعت ناتمام است</div></div><div id="hours" class="hour-bars"></div><div id="hourDetail" class="note" aria-live="polite"></div></section><footer><span>فاکتورها  · تمام روزها از پایگاه فروش.<br>پایان بازه برای همه روزها یکسان و دو ساعت قبل از زمان سرور است. زمان‌های نامشخص محاسبه نمی‌شوند.</span><span id="status" role="status" aria-live="polite">در حال اتصال به سرویس داده…</span></footer></main>
 <style>
 .selected-summary{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin:0 0 20px;padding:18px 22px;border:1px solid #ffb87860;border-radius:18px;background:linear-gradient(120deg,#66433250,#273952);font-size:13px}.selected-summary strong{color:#ffbf8c}.selected-summary>span{color:#ffdcbd}.selected-summary .note{flex-basis:100%;color:#c3d2ed}.legend .selected-legend:before{border-top:3px solid #ffad75}.selected-point:focus{outline:2px solid #ffe0a2;outline-offset:3px}
 .legend span.total-mean-legend:before{border-top:2px dashed #d1a4ff}.legend span.selected-mean-legend:before{border-top:2px dashed #ffad75}
@@ -64,7 +64,7 @@ const numberFormat=new Intl.NumberFormat('fa-IR',{maximumFractionDigits:1});
 const fmt=n=>numberFormat.format(n);
 const fa=s=>String(s).replace(/[0-9]/g,n=>'۰۱۲۳۴۵۶۷۸۹'[Number(n)]);
 const isolate=s=>'\u2066'+fa(s)+'\u2069';
-const source=s=>s==='OLAP'?'OLAP فروش':'پایگاه داده';
+const source=s=>'پایگاه فروش';
 const ns='http://www.w3.org/2000/svg';
 function el(tag,attrs,parent=$('plot')){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e}
 function label(x,y,text,attrs={}){const e=el('text',{x,y,fill:'#b4c6e4','font-size':12,...attrs});e.textContent=text;return e}
@@ -100,7 +100,7 @@ function draw(data){
  const days=data.days,mean=data.mean,today=days.find(d=>d.today);
  renderInventoryFilters(data);
  $('today').textContent=fmt(today.count);
- $('todayNote').textContent=`${isolate(today.persian)} · OLAP فروش · تا ${isolate(data.windowEnd)}`;
+ $('todayNote').textContent=`${isolate(today.persian)} · پایگاه فروش · تا ${isolate(data.windowEnd)}`;
  $('mean').textContent=fmt(mean);$('delta').textContent=percent(today.count,mean);
  $('specialToday').textContent=fmt(today.selectedCount);
  $('specialTodayNote').textContent=$('todayNote').textContent;
@@ -163,7 +163,7 @@ async function toggleAutomatic(){
 let forcingRefresh=false;
 async function forceRefresh(){
  if(forcingRefresh)return;forcingRefresh=true;
- const button=$('refresh');button.disabled=true;button.classList.add('loading');$('buttonText').textContent='در حال دریافت از OLAP…';
+ const button=$('refresh');button.disabled=true;button.classList.add('loading');$('buttonText').textContent='در حال دریافت از پایگاه فروش…';
  try{
   const response=await fetch('/api/refresh',{method:'POST',headers:{'X-Dashboard-Request':'1'}});
   if(!response.ok)throw Error('درخواست دریافت داده ثبت نشد.');
