@@ -368,7 +368,23 @@ for(const id of ['tableStart','tableEnd'])$(id).addEventListener('input',()=>{
  if(tablePayload)try{sessionStorage.setItem('factor-range',JSON.stringify({start:tablePayload.dates[Number(a.value)],end:tablePayload.dates[Number(b.value)],followEnd:b.value===b.max}))}catch{}
 });
 window.addEventListener('resize',updateDualSlider);
-const chartView={data:null,start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+const chartView={data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+function aggregateChart(data,mode){
+ if(mode==='daily')return data;
+ const groups=new Map();
+ for(const day of data.days){
+  const month=chartMonthKey(day.persian),year=month.slice(0,4),m=Number(month.slice(4));
+  const first=mode==='monthly'?m:Math.floor((m-1)/3)*3+1,key=year+String(first).padStart(2,'0');
+  if(!groups.has(key))groups.set(key,{...day,count:0,persian:mode==='monthly'?`${year}/${String(first).padStart(2,'0')}`:`${year}/${String(first).padStart(2,'0')}–${String(first+2).padStart(2,'0')}`,startMonth:key,endMonth:year+String(mode==='monthly'?first:first+2).padStart(2,'0'),periodStart:day.persian,periodEnd:day.persian});
+  const group=groups.get(key);group.count+=day.count;group.date=day.date;group.periodEnd=day.persian;
+ }
+ const days=[...groups.values()];return {...data,days,mean:days.reduce((sum,d)=>sum+d.count,0)/Math.max(1,days.length)};
+}
+function chartSetAggregation(mode){
+ chartView.aggregation=mode;chartView.initialized=false;chartView.latest=true;
+ renderInteractiveChart(chartView.rawData);
+ for(const [id,value] of [['chartDaily','daily'],['chartMonthly','monthly'],['chartQuarterly','quarterly']])$(id).setAttribute('aria-pressed',String(value===mode));
+}
 const chartMonthKey=date=>String(date).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g,'').slice(0,6);
 // Same least-squares fit as Prime's rhythmTrend, using only visible daily points.
 function chartTrend(days,first,last){
@@ -381,7 +397,7 @@ function chartTrend(days,first,last){
 }
 function chartSelectMonths(from,to=from){
  const days=chartView.data?.days;if(!days?.length)return;
- const first=days.findIndex(d=>chartMonthKey(d.persian)>=from),last=days.findLastIndex(d=>chartMonthKey(d.persian)<=to);
+ const first=days.findIndex(d=>(d.endMonth||chartMonthKey(d.persian))>=from),last=days.findLastIndex(d=>(d.startMonth||chartMonthKey(d.persian))<=to);
  if(first<0||last<first)return;
  chartView.start=first;chartView.span=last-first+1;chartView.scale=1;chartView.latest=last===days.length-1;chartView.initialized=true;chartClamp();chartSchedule();
 }
@@ -390,7 +406,7 @@ function chartRecentMonths(count){
 }
 function updateChartMonths(){
  for(const id of ['chartMonthFrom','chartMonthTo']){const select=$(id),previous=select.value;select.replaceChildren();
-  for(const month of new Set(chartView.data.days.map(d=>chartMonthKey(d.persian)))){const option=document.createElement('option');option.value=month;option.textContent=`${fa(month.slice(0,4))}/${fa(month.slice(4))}`;select.append(option)}
+  for(const month of new Set(chartView.rawData.days.map(d=>chartMonthKey(d.persian)))){const option=document.createElement('option');option.value=month;option.textContent=`${fa(month.slice(0,4))}/${fa(month.slice(4))}`;select.append(option)}
   select.value=[...select.options].some(o=>o.value===previous)?previous:select.options[id==='chartMonthFrom'?0:select.options.length-1]?.value;
  }
 }
@@ -404,6 +420,7 @@ function chartZoom(factor,anchor=.5){
  const position=chartView.start+(chartView.span-1)*anchor;chartView.span*=factor;chartClamp();chartView.start=position-(chartView.span-1)*anchor;chartClamp();chartView.latest=chartView.start>=chartView.data.days.length-chartView.span-.01;chartSchedule();
 }
 function renderInteractiveChart(data){
+ chartView.rawData=data;data=aggregateChart(data,chartView.aggregation);
  const previousDate=chartView.data?.days[Math.floor(chartView.start)]?.date;
  chartView.data=data;
  updateChartMonths();
@@ -446,8 +463,8 @@ function paintInteractiveChart(){
  }
  if(trend){
   add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#b17b24','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
-  $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در روز`;
- }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو روز لازم است.';
+  $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
+ }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
  const axisX=add('rect',{x:L,y:B+2,width:R-L,height:H-B-2,fill:'transparent',class:'chart-x-axis'});axisX.style.cursor='ew-resize';
  const axisY=add('rect',{x:R+1,y:T,width:W-R-1,height:B-T,fill:'transparent',class:'chart-y-axis'});axisY.style.cursor='ns-resize';
@@ -459,7 +476,7 @@ function paintInteractiveChart(){
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  const tip=$('tip');tip.replaceChildren();
- for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین روزهای تکمیل‌شده: ${percent(day.count,data.mean)}`,'تمام فاکتورها']){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین دوره‌ها: ${percent(day.count,data.mean)}`,'تمام فاکتورها'].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
@@ -474,9 +491,9 @@ function setupChartNavigation(){
   ['chartZoomIn','بزرگ‌نمایی +',()=>chartZoom(.75)],['chartZoomOut','کوچک‌نمایی −',()=>chartZoom(1.35)],
   ['chartLatest','آخرین روزها',()=>{chartView.span=Math.max(3,Math.floor(svg.clientWidth/95));chartView.start=chartView.data.days.length-chartView.span;chartView.latest=true;chartView.scale=1;chartSchedule()}],
   ['chartAll','کل دوره',()=>{chartView.span=chartView.data.days.length;chartView.start=0;chartView.scale=1;chartView.latest=true;chartSchedule()}],
-  ['chartOneMonth','یک ماه',()=>chartRecentMonths(1)],
-  ['chartThreeMonths','سه ماه',()=>chartRecentMonths(3)],
-  ['chartSixMonths','شش ماه',()=>chartRecentMonths(6)],
+  ['chartDaily','روزانه',()=>chartSetAggregation('daily')],
+  ['chartMonthly','ماهیانه',()=>chartSetAggregation('monthly')],
+  ['chartQuarterly','سه ماهه',()=>chartSetAggregation('quarterly')],
   ['chartAutoY','مقیاس خودکار ارتفاع',()=>{chartView.scale=1;chartSchedule()}]]){
   const button=document.createElement('button');button.type='button';button.id=id;button.textContent=title;button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
  }
