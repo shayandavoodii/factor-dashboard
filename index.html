@@ -210,7 +210,6 @@ function enhanceMonthSelectors(){
 .neon-trend-base{stroke:var(--trend-color);opacity:.85;filter:drop-shadow(0 0 2px var(--trend-color))}
 .neon-trend-flow{stroke:var(--trend-bright);filter:drop-shadow(0 0 3px var(--trend-color));animation:trendColor 3s ease-in-out infinite;vector-effect:non-scaling-stroke}
 .trend-seed{filter:drop-shadow(0 0 1.2px var(--trend-bright))}
-@keyframes trendFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-40}}
 @keyframes trendColor{0%,100%{stroke:var(--trend-color);opacity:.8}50%{stroke:var(--trend-bright);opacity:1}}
 .plot-pane .legend span.trend-legend:before{border-color:var(--trend-color,#119b70);border-top-style:solid;box-shadow:0 0 4px var(--trend-color,#119b70)}
 .plot-pane[data-trend-direction] [id$=chartTrendStatus]{color:var(--trend-color)!important;background:color-mix(in srgb,var(--trend-color) 9%,white)}
