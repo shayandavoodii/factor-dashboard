@@ -492,7 +492,13 @@ function paintInteractiveChart(){
   });
  }
  if(trend){
-  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#e27836','stroke-width':2.8,'stroke-dasharray':'7 6'},series);
+  const falling=trend.slope<0,trendColor=falling?'#e54865':'#119b70';
+  pane.dataset.trendDirection=falling?'negative':'positive';
+  pane.style.setProperty('--trend-color',trendColor);
+  pane.style.setProperty('--trend-bright',falling?'#ff8298':'#51e5ad');
+  const trendGeometry={x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),'pointer-events':'none','stroke-linecap':'round'};
+  add('line',{...trendGeometry,class:'visible-trend neon-trend-base',stroke:trendColor,'stroke-width':1.15},series);
+  add('line',{...trendGeometry,class:'neon-trend-flow',stroke:trendColor,'stroke-width':1.5,'stroke-dasharray':'14 26'},series);
   $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} ${amountMode?'تومان به ازای فاکتور':'فاکتور'} در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
