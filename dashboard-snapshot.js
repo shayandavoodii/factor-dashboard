@@ -276,7 +276,8 @@ function chartForScope(scope){
  const history=days.filter(d=>!d.today&&!d.future),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const asOf=days.find(d=>d.today)?.date||days.at(-1).date;
- return {...base,days,inventoryFilter:view.filter,mean:mean('count'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:asOf,dateMismatch:asOf!==today}};
+ const expected=new Date(`${today}T12:00:00Z`);expected.setUTCDate(expected.getUTCDate()-1);
+ return {...base,days,inventoryFilter:view.filter,mean:mean('count'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:asOf,dateMismatch:asOf!==expected.toISOString().slice(0,10)}};
 }
 function renderSnapshotView(){
  if(!snapshotBundle)return;

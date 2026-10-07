@@ -20,9 +20,9 @@
 
 <div class="sub"><span id="window">در حال دریافت داده‌های سال ۱۴۰۵…</span></div>
 <div class="cards">
-<div class="card"><div class="label"><b>امروز</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="today">—</div><div class="note" id="todayNote">در انتظار دریافت داده‌ها</div></div></div></div>
+<div class="card"><div class="label"><b>آخرین روز تکمیل‌شده</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="today">—</div><div class="note" id="todayNote">در انتظار دریافت داده‌ها</div></div></div></div>
 <div class="card"><div class="label"><b>میانگین روزهای تکمیل‌شده</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="mean">—</div><div class="note">در همین بازه زمانی</div></div></div></div>
-<div class="card"><div class="label"><b>امروز در مقایسه با میانگین دوره</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="delta">—</div><div class="note" id="deltaNote">مقایسه در بازه زمانی یکسان</div></div></div></div>
+<div class="card"><div class="label"><b>آخرین روز در مقایسه با میانگین دوره</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="delta">—</div><div class="note" id="deltaNote">مقایسه در بازه زمانی یکسان</div></div></div></div>
 </div>
 
 <section class="inventory-filter" aria-labelledby="inventoryFilterTitle"><div class="filter-head"><div><strong id="inventoryFilterTitle">شعب منتخب</strong><span id="activeInventory">همه شعب</span></div><button id="locationsToggle" class="locations-toggle" type="button" aria-expanded="false">انتخاب یک شعبه <span>⌄</span></button></div><div id="supervisorButtons" class="supervisor-buttons"></div><div id="locationPanel" class="location-panel" hidden><label for="locationSearch">جست‌وجوی نام یا کد شعبه</label><input id="locationSearch" type="search" autocomplete="off" placeholder="نام یا کد شعبه…"><div id="locationButtons" class="location-buttons"></div></div><div id="filterStatus" class="filter-status" role="status" aria-live="polite"></div></section>
@@ -91,7 +91,7 @@ function draw(data){
  $('todayNote').textContent=`${isolate(today.persian)} · آخرین روز تکمیل‌شده · امروز از محاسبات حذف شده است`;
  $('mean').textContent=fmt(mean);$('delta').textContent=percent(today.count,mean);
  $('deltaNote').textContent=`${fmt(Math.abs(today.count-mean))} فاکتور ${today.count>=mean?'بیشتر':'کمتر'} از میانگین در همین بازه`;
- $('window').textContent='سال ۱۴۰۵ · فروشگاه‌های دارای کد ST · انبار مجازی از محاسبات حذف شده است.';
+ $('window').textContent='سال ۱۴۰۵ تا دیروز · فروشگاه‌های دارای کد ST · انبار مجازی از محاسبات حذف شده است.';
 
  renderInteractiveChart(data);
 }
