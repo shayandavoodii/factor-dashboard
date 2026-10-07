@@ -86,7 +86,7 @@ function draw(data){
  $('deltaNote').textContent=`${fmt(Math.abs(today.count-mean))} فاکتور ${today.count>=mean?'بیشتر':'کمتر'} از میانگین در همین بازه`;
  $('window').textContent='سال ۱۴۰۵ تا دیروز · انبار مجازی از محاسبات حذف شده است.';
 
- renderInteractiveChart(data);
+ renderInteractiveChart(data);const net=data.days.reduce((sum,day)=>sum+day.netAmount,0),count=data.days.reduce((sum,day)=>sum+day.count,0);$('averageNetCard').textContent=count?fmt(net/count):'—';$('lastNetCard').textContent=today.count?fmt(today.netAmount/today.count):'—';
 }
 let lastSaved=null,lastFetchStatus=null,readingSnapshot=false;
 async function refresh(quiet=false){return refreshPreparedSnapshot(quiet)}
@@ -168,6 +168,8 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
 }
 let branchMenus=null;
 function setupExcelInventoryFilters(){
+ const cards=document.querySelector('.cards');for(const [id,title] of [['averageNetCard','میانگین خالص هر فاکتور · کل دوره'],['lastNetCard','میانگین خالص هر فاکتور · آخرین روز']]){const card=document.createElement('div');card.className='card';const heading=document.createElement('strong');heading.textContent=title;const value=document.createElement('div');value.className='value';value.id=id;value.textContent='—';const unit=document.createElement('span');unit.className='note';unit.textContent='تومان · مجموع مبلغ خالص ÷ تعداد فاکتور';card.append(heading,value,unit);cards.append(card)}
+
  const legacy=document.createElement('input');legacy.type='checkbox';legacy.id='multiInventory';legacy.checked=viewFilter.mode==='selection';legacy.hidden=true;document.querySelector('.inventory-filter').append(legacy);
  const groups=()=>[...new Set((inventoryData?.inventoryOptions||[]).map(item=>item.supervisor))].sort((a,b)=>a.localeCompare(b,'fa'));
  const options=()=>inventoryData?.inventoryOptions||[];
@@ -190,7 +192,7 @@ function enhanceMonthSelectors(){
 <script src="dashboard-snapshot.js"></script><style>
 .filter-dropdowns{display:flex;gap:12px;flex-wrap:wrap}.excel-filter{display:inline-block;position:relative;min-width:150px;text-align:right;direction:rtl}.excel-trigger{width:100%;background:white;color:#285469;border:1px solid #b9d1df;border-radius:8px;min-height:40px;padding:9px 12px;font-size:12px;box-shadow:none}.excel-trigger[aria-expanded=true]{border-color:#168b80;background:#effaf8}.excel-menu{position:absolute;inset-inline-start:0;top:calc(100% + 6px);z-index:100;width:310px;max-width:calc(100vw - 48px);padding:12px;background:white;border:1px solid #c8d6de;border-radius:10px;box-shadow:0 14px 38px #17344e30}.excel-menu[hidden]{display:none}.excel-menu input[type=search]{width:100%;padding:9px 10px;border:1px solid #c8d6de;border-radius:5px;color:#25465e;background:white;font:inherit;font-size:12px}.excel-options{max-height:240px;overflow:auto;margin:7px 0}.excel-option{display:flex!important;align-items:center;gap:9px;padding:8px 6px;border-radius:4px;cursor:pointer;font-size:12px;color:#294960;font-weight:400}.excel-option:hover{background:#edf6fb}.excel-option input{accent-color:#168b80;width:16px;height:16px;flex-shrink:0}.excel-all{border-bottom:1px solid #e3ebf0;margin-top:8px}.excel-actions{display:flex;gap:8px;border-top:1px solid #e3ebf0;padding-top:10px}.excel-actions button{font-size:12px;min-width:70px;padding:7px 12px;border-radius:5px}.excel-actions .excel-apply{background:#168b80;color:white;border-color:#168b80}.excel-empty{padding:16px;color:#78909d;font-size:12px}.filter-status:empty{display:none}.plot-date-boundary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 9px;background:#ffffffb0;border:1px solid #d5e6ef;border-radius:9px}.plot-date-boundary strong{color:#236a83;font-size:12px}.plot-date-boundary label{display:flex;align-items:center;gap:5px}.plot-date-boundary .excel-filter{min-width:110px}.plot-date-boundary label:last-child .excel-filter{min-width:85px}.plot-date-boundary .excel-menu{width:230px}@media(max-width:650px){.filter-dropdowns{width:100%}.filter-dropdowns>.excel-filter{flex:1;min-width:125px}.filter-dropdowns #branchFilter .excel-menu{inset-inline-start:auto;inset-inline-end:0}.plot-date-boundary{width:100%}}
 </style>
-</html>
+<style>.cards{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important}.cards .card:nth-child(n+4){background:linear-gradient(135deg,#e9f4ff,#e8f7f0);border:1px solid #b9dce6}.cards .card:nth-child(n+4) .value{color:#2476ab}[id$=chartNetMetric][aria-pressed=true]{background:#287ec0;color:white}</style></html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
 
 <style id="light-dashboard">

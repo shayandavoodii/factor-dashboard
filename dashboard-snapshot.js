@@ -5,7 +5,7 @@ let hourlyPrefix=null;
 let viewFilter={mode:'all',value:''};
 try{viewFilter=JSON.parse(sessionStorage.getItem('factor-view')||'null')||viewFilter}catch{}
 const snapshotKey=f=>f.mode==='all'?'all':`${f.mode}:${f.value}`;
-const buckets=['total','low','mid','high','veryhigh'];
+let netPrefix=null;const averageNet=(net,count)=>count?net/count:null;const buckets=['total','low','mid','high','veryhigh'];
 let additiveScopeCache=new Map();
 function combineInventoryCharts(scope){
  const base=snapshotBundle.chartTemplate;if(!base)return null;
@@ -24,7 +24,7 @@ function combineInventoryCharts(scope){
   });
   if(!certified)return null;
  }
- return {filter:scope,counts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.counts[i],0)),hours:base.days.map((d,i)=>d.hours.map((_,j)=>branches.reduce((n,v)=>n+v.hours[i][j],0)))};
+ return {filter:scope,netAmounts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.netAmounts[i],0)),counts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.counts[i],0)),hours:base.days.map((d,i)=>d.hours.map((_,j)=>branches.reduce((n,v)=>n+v.hours[i][j],0)))};
 }
 function inventoryPressed(filter,mode,value){
  if(filter.mode!=='selection')return filter.mode===mode&&(mode==='all'||filter.value===value);
@@ -35,7 +35,7 @@ function inventoryPressed(filter,mode,value){
 function setupInventoryMultiselect(){setupExcelInventoryFilters()}
 function persistInventorySelection(){try{sessionStorage.setItem('factor-view',JSON.stringify(viewFilter))}catch{}}
 let tableSort=[];
-const validSortKey=key=>buckets.includes(key)||/^(second|growth)_(total|low|mid|high|veryhigh)$/.test(key);
+const validSortKey=key=>key==='averageNet'||buckets.includes(key)||/^(second|growth)_(total|low|mid|high|veryhigh|averageNet)$/.test(key);
 try{const saved=JSON.parse(sessionStorage.getItem('factor-table-sort')||'null');for(const entry of Array.isArray(saved)?saved:saved?[saved]:[]){if(entry&&validSortKey(entry.key)&&['ascending','descending'].includes(entry.direction)&&!tableSort.length)tableSort.push(entry)}}catch{}
 function sortTableRows(rows){
  if(!tableSort.length)return rows;
@@ -79,7 +79,7 @@ function wireTableSorting(){
  updateTableSortHeaders();
 }
 
-const metricOrder=['low','mid','high','veryhigh','total'];
+const metricOrder=['low','mid','high','veryhigh','total','averageNet'];
 let metricLabels=[],metadataLabels=[],comparisonLayout=null;
 const percentFormatter=new Intl.NumberFormat('fa-IR',{maximumFractionDigits:1});
 function growthPercent(first,second){return first===0?(second===0?0:null):100*(second-first)/first}
@@ -104,7 +104,7 @@ function updateComparisonSlider(){
  if(tablePayload){for(const input of [a,b]){const date=tablePayload.dates[Number(input.value)];$(input.id+'Date').textContent=date;input.setAttribute('aria-valuetext',date)}setPeriodDayCaption('comparePeriodDays',a,b)}
 }
 function setupComparison(){
- const headers=[...document.querySelectorAll('.inventory-table thead th')];metadataLabels=headers.slice(0,4).map(h=>h.textContent);metricLabels=headers.slice(4).map(h=>h.textContent);
+ const averageHeader=document.createElement('th');averageHeader.textContent='میانگین خالص هر فاکتور (تومان)';document.querySelector('.inventory-table thead tr').append(averageHeader);const headers=[...document.querySelectorAll('.inventory-table thead th')];metadataLabels=headers.slice(0,4).map(h=>h.textContent);metricLabels=headers.slice(4).map(h=>h.textContent);
  headers.slice(4).forEach((h,i)=>h.dataset.key=metricOrder[i]);
  const first=document.querySelector('.table-period'),second=first.cloneNode(true);
  const title=document.createElement('strong');title.className='comparison-title';title.textContent='بازه اول · مبنای رشد';first.prepend(title);
@@ -156,8 +156,8 @@ function renderComparedTable(a,b){
      value.textContent=n===null?'—':(n>0?'+':'')+percentFormatter.format(n)+'٪';
      value.title=n===null?'درصد رشد با مبنای صفر تعریف نمی‌شود.':'(بازه دوم − بازه اول) ÷ بازه اول × ۱۰۰';
      td.append(value);
-    }else if(key==='total'){
-     value.className='table-total';value.textContent=fmt(n);td.append(value);if(!prefix)td.className='metric-first';
+    }else if(key==='total'||key==='averageNet'){
+     value.className='table-total';value.textContent=n===null?'—':fmt(n);td.append(value);if(!prefix)td.className='metric-first';
     }else{
      const total=row[prefix+'total'],share=total?100*n/total:0,cell=document.createElement('div'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');
      cell.className='range-cell';cell.style.setProperty('--bucket',({low:'#5b9ed7',mid:'#3aaa88',high:'#9b78c8',veryhigh:'#e8ae50',total:'#168779'})[key]);
@@ -168,7 +168,7 @@ function renderComparedTable(a,b){
   }
   fragment.append(tr);
  }
- if(!first.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=19;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}
+ if(!first.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4+metricOrder.length*3;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}
  $('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`بازه اول: ${tablePayload.dates[a]} تا ${tablePayload.dates[b]} · بازه دوم: ${tablePayload.dates[c]} تا ${tablePayload.dates[d]}`;
 }
 
@@ -233,11 +233,11 @@ function snapshotDB(){
 async function saveBrowserSnapshot(bundle){try{const db=await snapshotDB();await new Promise((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(bundle,'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});}catch{}}
 async function restoreBrowserSnapshot(){try{const db=await snapshotDB();const r=db.transaction('snapshots').objectStore('snapshots').get('latest');r.onsuccess=()=>{if(!snapshotBundle&&validSnapshot(r.result)){installSnapshot(r.result);snapshotETag=`"${r.result.version}"`;$('status').textContent='نمایش آخرین داده ذخیره‌شده؛ در حال بررسی بروزرسانی…'}}}catch{}}
 function validSnapshot(b){
- if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.inventoryRestriction!==true||b?.inventoryScope!=='ST-active-store-excluding-virtual-transit-v3'||b?.completedDaysOnly!==true)return false;
+ if(b?.netAmountMetric!==true)return false;if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.inventoryRestriction!==true||b?.inventoryScope!=='ST-active-store-excluding-virtual-transit-v3'||b?.completedDaysOnly!==true)return false;
  if(!b||b.schema!==3||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
- const days=b.chartTemplate?.days;
+ if(!Array.isArray(t.dailyNetAmounts)||t.dailyNetAmounts.length!==t.dates.length||!t.dailyNetAmounts.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(Number.isFinite)))return false;const days=b.chartTemplate?.days;if(!Object.values(b.charts).every(c=>Array.isArray(c.netAmounts)&&c.netAmounts.length===days?.length&&c.netAmounts.every(Number.isFinite)))return false;
  if(t?.hourly!==undefined){
   if(!Array.isArray(t.hourly))return false;
   const seen=new Set(),totals=new Float64Array(t.dates.length*t.inventories.length*5);
@@ -265,7 +265,7 @@ function selectedScope(){
 function chartForScope(scope){
  const view=scope.mode==='selection'?combineInventoryCharts(scope):snapshotBundle.charts[snapshotKey(scope)],base=snapshotBundle.chartTemplate;
  if(!view||!base)return null;
- const days=base.days.map((d,i)=>({...d,count:view.counts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j]}))}));
+ const days=base.days.map((d,i)=>({...d,count:view.counts[i],netAmount:view.netAmounts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j]}))}));
  const history=days.filter(d=>!d.today&&!d.future),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const asOf=days.find(d=>d.today)?.date||days.at(-1).date;
@@ -314,7 +314,7 @@ function installSnapshot(bundle){
  if(next){
   const a=$('tableStart'),b=$('tableEnd'),oldStart=tablePayload?.dates[Number(a.value)],oldEnd=tablePayload?.dates[Number(b.value)],followEnd=!tableInitialized||Number(b.value)===Number(b.max);
   tablePayload={...next,totalDays:next.dates.length};
-  tablePrefix=[next.inventories.map(()=>[0,0,0,0,0])];
+  netPrefix=[next.inventories.map(()=>0)];next.dailyNetAmounts.forEach(day=>netPrefix.push(day.map((net,i)=>netPrefix.at(-1)[i]+net)));tablePrefix=[next.inventories.map(()=>[0,0,0,0,0])];
   hourlyPrefix=buildHourlyPrefix(next);
   next.daily.forEach(day=>{const previous=tablePrefix.at(-1);tablePrefix.push(day.map((v,i)=>v.map((n,j)=>previous[i][j]+n)))});
   a.max=b.max=next.dates.length-1;a.value=Math.max(0,next.dates.indexOf(oldStart));b.value=followEnd?b.max:Math.max(Number(a.value),next.dates.indexOf(oldEnd));
@@ -334,7 +334,7 @@ function sumTableRange(start,end,windowName='first'){
   buckets.forEach((k,j)=>{
    if(!hourlyPrefix){row[k]=tablePrefix[end+1][i][j]-tablePrefix[start][i][j];return}
    row[k]=0;for(let hour=from;hour<=to;hour++)row[k]+=hourlyPrefix[hour][(end+1)*stride+i*5+j]-hourlyPrefix[hour][start*stride+i*5+j];
-  });return [row];
+  });row.netAmount=netPrefix[end+1][i]-netPrefix[start][i];row.averageNet=averageNet(row.netAmount,row.total);return [row];
  });
 }
 function fetchInventoryTable(){
@@ -372,15 +372,15 @@ window.addEventListener('resize',updateDualSlider);
 function createIndependentChart(root,prefix=''){
  const $=id=>document.getElementById(prefix+id);
  const el=(tag,attrs,parent=$('plot'))=>{const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e};
-const chartView={data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+const chartView={metric:'count',data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
 function aggregateChart(data,mode){
  if(mode==='daily')return data;
  const groups=new Map();
  for(const day of data.days){
   const month=chartMonthKey(day.persian),year=month.slice(0,4),m=Number(month.slice(4));
   const first=mode==='monthly'?m:Math.floor((m-1)/3)*3+1,key=year+String(first).padStart(2,'0');
-  if(!groups.has(key))groups.set(key,{...day,count:0,persian:mode==='monthly'?`${year}/${String(first).padStart(2,'0')}`:`${year}/${String(first).padStart(2,'0')}–${String(first+2).padStart(2,'0')}`,startMonth:key,endMonth:year+String(mode==='monthly'?first:first+2).padStart(2,'0'),periodStart:day.persian,periodEnd:day.persian});
-  const group=groups.get(key);group.count+=day.count;group.date=day.date;group.periodEnd=day.persian;
+  if(!groups.has(key))groups.set(key,{...day,count:0,netAmount:0,persian:mode==='monthly'?`${year}/${String(first).padStart(2,'0')}`:`${year}/${String(first).padStart(2,'0')}–${String(first+2).padStart(2,'0')}`,startMonth:key,endMonth:year+String(mode==='monthly'?first:first+2).padStart(2,'0'),periodStart:day.persian,periodEnd:day.persian});
+  const group=groups.get(key);group.count+=day.count;group.netAmount+=day.netAmount;group.date=day.date;group.periodEnd=day.persian;
  }
  const days=[...groups.values()];return {...data,days,mean:days.reduce((sum,d)=>sum+d.count,0)/Math.max(1,days.length)};
 }
@@ -455,7 +455,7 @@ function renderInteractiveChart(data){
  chartClamp();paintInteractiveChart();
 }
 function paintInteractiveChart(){
- const data=chartView.data;if(!data?.days.length)return;
+ let data=chartView.data;if(!data?.days.length)return;const amountMode=chartView.metric==='averageNet';if(amountMode){const net=data.days.reduce((s,d)=>s+d.netAmount,0),count=data.days.reduce((s,d)=>s+d.count,0);data={...data,mean:averageNet(net,count)||0,days:data.days.map(day=>({...day,count:averageNet(day.netAmount,day.count)}))}}const visibleRaw=chartView.data.days.slice(Math.ceil(chartView.start),Math.floor(chartView.start+chartView.span));const net=visibleRaw.reduce((s,d)=>s+d.netAmount,0),count=visibleRaw.reduce((s,d)=>s+d.count,0);$('chartNetAverage').textContent='میانگین خالص بازه نمایان: '+(count?fmt(net/count)+' تومان':'—');
  chartClamp();const svg=$('plot');svg.replaceChildren();$('tip').hidden=true;
  const W=svg.clientWidth||1000,H=400,L=18,R=W-84,T=30,B=326;
  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -463,7 +463,7 @@ function paintInteractiveChart(){
  const trendFirst=Math.ceil(chartView.start),trendLast=Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1));
  const trend=chartTrend(data.days,trendFirst,trendLast);chartView.trend=trend;
  const fitted=trend?[trend.intercept+trend.slope*trend.first,trend.intercept+trend.slope*trend.last]:[];
- const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,...fitted,...visible.map(d=>d.count))*1.18*chartView.scale;
+ const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,...fitted,...visible.map(d=>d.count||0))*1.18*chartView.scale;
  const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
  chartView.geometry={W,H,L,R,T,B,x,y};
  const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#667b91','font-size':11,...attrs},parent);node.textContent=value;return node};
@@ -479,12 +479,12 @@ function paintInteractiveChart(){
  }
  const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
  for(const [field,color,cls,offset] of [['count','#287ec0','total',-13]]){
-  const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>!d.future||d[field]>0);
+  const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>d[field]!==null&&(!d.future||d[field]>0));
   const path=points.map(({d,i},j)=>`${j?'L':'M'} ${x(i)} ${y(d[field])}`).join(' ');
   if(points.length>1)add('path',{class:'total-area',d:`${path} L ${x(points.at(-1).i)} ${B} L ${x(points[0].i)} ${B} Z`,fill:`url(#${prefix}chart-area-color)`,'pointer-events':'none'},series);
   add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':3,'stroke-linejoin':'round'},series);
   visible.forEach((day,j)=>{
-   if(day.future&&!day[field])return;
+   if(day[field]===null||day.future&&!day[field])return;
    const pointColor=day[field]>=data.mean?'#168b70':'#d58b22';
    const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3.5,fill:pointColor,stroke:'#ffffff','stroke-width':1.5,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
    dot.addEventListener('focus',()=>chartTooltip(i));dot.addEventListener('blur',()=>{$('tip').hidden=true});
@@ -493,7 +493,7 @@ function paintInteractiveChart(){
  }
  if(trend){
   add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#e27836','stroke-width':2.8,'stroke-dasharray':'7 6'},series);
-  $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
+  $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} ${amountMode?'تومان به ازای فاکتور':'فاکتور'} در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
  const axisX=add('rect',{x:L,y:B+2,width:R-L,height:H-B-2,fill:'transparent',class:'chart-x-axis'});axisX.style.cursor='ew-resize';
@@ -506,7 +506,7 @@ function paintInteractiveChart(){
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  const tip=$('tip');tip.replaceChildren();
- for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین دوره‌ها: ${percent(day.count,data.mean)}`,'تمام فاکتورها'].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`میانگین خالص هر فاکتور: ${day.count?fmt(day.netAmount/day.count)+' تومان':'—'}`,`نسبت به میانگین دوره‌ها: ${percent(day.count,data.mean)}`,'تمام فاکتورها'].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
@@ -528,13 +528,13 @@ function setupChartNavigation(){
   const button=document.createElement('button');button.type='button';button.id=prefix+id;button.dataset.chartId=id;button.textContent=title;if(['chartDaily','chartMonthly','chartQuarterly'].includes(id))button.setAttribute('aria-pressed',String(id==='chartDaily'));button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
  }
  const status=document.createElement('span');status.id=prefix+'chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
- const monthRange=document.createElement('div');monthRange.className='chart-navigation';
+ const metric=document.createElement('button');metric.type='button';metric.textContent='میانگین خالص هر فاکتور';metric.id=prefix+'chartNetMetric';metric.setAttribute('aria-pressed','false');metric.addEventListener('click',()=>{chartView.metric=chartView.metric==='count'?'averageNet':'count';metric.setAttribute('aria-pressed',String(chartView.metric==='averageNet'));chartSchedule()});toolbar.append(metric);const netNote=document.createElement('span');netNote.id=prefix+'chartNetAverage';netNote.className='note';toolbar.append(netNote);const monthRange=document.createElement('div');monthRange.className='chart-navigation';
  for(const [side,title] of [['From','از'],['To','تا']]){
   const group=document.createElement('div');group.className='plot-date-boundary';const heading=document.createElement('strong');heading.textContent=title;group.append(heading);
-  for(const [kind,name] of [['Month','ماه'],['Day','روز']]){const label=document.createElement('label');label.textContent=name+' ';const select=document.createElement('select');select.id=prefix+'chart'+kind+side;select.setAttribute('aria-label',title+' '+name+' شمسی');if(kind==='Month')select.addEventListener('change',()=>updateChartDays(side,false));label.append(select);group.append(label)}
+  for(const [kind,name] of [['Month','ماه'],['Day','روز']]){const label=document.createElement('label');label.textContent=name+' ';const select=document.createElement('select');select.id=prefix+'chart'+kind+side;select.setAttribute('aria-label',title+' '+name+' شمسی');select.addEventListener('change',()=>{if(kind==='Month')updateChartDays(side,false);chartSelectDates()});label.append(select);group.append(label)}
   monthRange.append(group);
  }
- const apply=document.createElement('button');apply.type='button';apply.id=prefix+'chartApplyMonths';apply.dataset.chartId='chartApplyMonths';apply.textContent='نمایش بازه';apply.addEventListener('click',chartSelectDates);monthRange.append(apply);
+
  const trendStatus=document.createElement('span');trendStatus.id=prefix+'chartTrendStatus';trendStatus.className='note plot-trend-status';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
  const scroll=document.createElement('input');scroll.type='range';scroll.id=prefix+'chartScroll';scroll.className='plot-scroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
  const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · دوبار کلیک: بازنشانی';scroll.after(hint);
