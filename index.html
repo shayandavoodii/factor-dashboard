@@ -85,10 +85,10 @@ function renderLocationButtons(search=''){
 }
 function applyInventoryFilter(mode,value='',event={}){selectSnapshotFilter(mode,value,event)}
 function draw(data){
- const days=data.days,mean=data.mean,today=days.find(d=>d.today);
+ const days=data.days,mean=data.mean,today=days.at(-1);
  renderInventoryFilters(data);
  $('today').textContent=fmt(today.count);
- $('todayNote').textContent=`${isolate(today.persian)} · بدون فیلتر ساعت · داده امروز هنوز کامل نیست`;
+ $('todayNote').textContent=`${isolate(today.persian)} · آخرین روز تکمیل‌شده · امروز از محاسبات حذف شده است`;
  $('mean').textContent=fmt(mean);$('delta').textContent=percent(today.count,mean);
  $('deltaNote').textContent=`${fmt(Math.abs(today.count-mean))} فاکتور ${today.count>=mean?'بیشتر':'کمتر'} از میانگین در همین بازه`;
  $('window').textContent='سال ۱۴۰۵ · فروشگاه‌های دارای کد ST · انبار مجازی از محاسبات حذف شده است.';
