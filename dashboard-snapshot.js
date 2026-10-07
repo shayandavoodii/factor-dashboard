@@ -531,8 +531,7 @@ function setupChartNavigation(){
   ['chartAll','کل دوره',()=>{chartView.span=chartView.data.days.length;chartView.start=0;chartView.scale=1;chartView.latest=true;chartSchedule()}],
   ['chartDaily','روزانه',()=>chartSetAggregation('daily')],
   ['chartMonthly','ماهیانه',()=>chartSetAggregation('monthly')],
-  ['chartQuarterly','سه ماهه',()=>chartSetAggregation('quarterly')],
-  ['chartAutoY','مقیاس خودکار ارتفاع',()=>{chartView.scale=1;chartSchedule()}]]){
+  ['chartQuarterly','سه ماهه',()=>chartSetAggregation('quarterly')]]){
   const button=document.createElement('button');button.type='button';button.id=prefix+id;button.dataset.chartId=id;button.textContent=title;if(['chartDaily','chartMonthly','chartQuarterly'].includes(id))button.setAttribute('aria-pressed',String(id==='chartDaily'));button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
  }
  const status=document.createElement('span');status.id=prefix+'chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
