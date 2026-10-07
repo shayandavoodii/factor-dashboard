@@ -32,14 +32,7 @@ function inventoryPressed(filter,mode,value){
  const group=inventoryData.inventoryOptions.filter(x=>x.supervisor===value),count=group.filter(x=>ids.has(x.id)).length;
  return count===0?false:count===group.length?true:'mixed';
 }
-function setupInventoryMultiselect(){
- const controls=document.createElement('div');controls.className='inventory-multi-controls';
- const label=document.createElement('label'),checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.id='multiInventory';checkbox.checked=viewFilter.mode==='selection';
- label.append(checkbox,document.createTextNode('انتخاب چندگانه'));
- checkbox.addEventListener('change',()=>{if(checkbox.checked){visibleSupervisor='';previewSupervisor='';$('locationPanel').hidden=false;$('locationsToggle').setAttribute('aria-expanded','true');renderLocationButtons($('locationSearch').value)}});
- const hint=document.createElement('span');hint.className='note';hint.textContent='برای انتخاب دسته شخصی سازی شده از شعب، می‌توانید دکمه Ctrl را نگه دارید و شعب مد نظر را انتخاب کنید';
- controls.append(label,hint);$('supervisorButtons').before(controls);
-}
+function setupInventoryMultiselect(){setupExcelInventoryFilters()}
 function persistInventorySelection(){try{sessionStorage.setItem('factor-view',JSON.stringify(viewFilter))}catch{}}
 let tableSort=[];
 const validSortKey=key=>buckets.includes(key)||/^(second|growth)_(total|low|mid|high|veryhigh)$/.test(key);
@@ -300,11 +293,10 @@ function selectSnapshotFilter(mode,value='',event={}){
   const ids=new Set(viewFilter.mode==='all'?[]:selectedScope().inventoryIds),options=snapshotBundle.chartTemplate?.inventoryOptions||snapshotBundle.table?.inventories||[];
   const target=mode==='inventory'?[value]:options.filter(x=>x.supervisor===value).map(x=>x.id),remove=target.every(id=>ids.has(id));
   target.forEach(id=>remove?ids.delete(id):ids.add(id));viewFilter={mode:'selection',value:[...ids].sort().join(','),inventoryIds:[...ids].sort()};
-  $('multiInventory').checked=true;visibleSupervisor='';previewSupervisor='';$('locationPanel').hidden=false;$('locationsToggle').setAttribute('aria-expanded','true');
+  $('multiInventory').checked=true;
  }else viewFilter={mode,value:mode==='all'?'':value};
  persistInventorySelection();
- if(mode==='supervisor'&&!multi){visibleSupervisor=value;previewSupervisor='';$('locationSearch').value='';$('locationPanel').hidden=false;$('locationsToggle').setAttribute('aria-expanded','true')}
- else if(mode==='all'){visibleSupervisor='';previewSupervisor=''}
+ branchMenus?.reset();
  renderSnapshotView();
 }
 function renderUpdatedCard(timestamp){
@@ -586,5 +578,7 @@ setupPlotComparison();
 setupComparison();setupTableSorting();
 
 setupInventoryMultiselect();
+enhanceMonthSelectors();
+new MutationObserver(enhanceMonthSelectors).observe(document.querySelector('main'),{childList:true,subtree:true});
 restoreBrowserSnapshot();refresh();
 setInterval(()=>refresh(true),publicSnapshotMode?60000:15000);

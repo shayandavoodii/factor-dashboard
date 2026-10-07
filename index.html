@@ -32,7 +32,7 @@
 <div class="card"><div class="label"><b>آخرین روز در مقایسه با میانگین دوره</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="delta">—</div><div class="note" id="deltaNote">مقایسه در بازه زمانی یکسان</div></div></div></div>
 </div>
 
-<section class="inventory-filter" aria-labelledby="inventoryFilterTitle"><div class="filter-head"><div><strong id="inventoryFilterTitle">شعب منتخب</strong><span id="activeInventory">همه شعب</span></div><button id="locationsToggle" class="locations-toggle" type="button" aria-expanded="false">انتخاب یک شعبه <span>⌄</span></button></div><div id="supervisorButtons" class="supervisor-buttons"></div><div id="locationPanel" class="location-panel" hidden><label for="locationSearch">جست‌وجوی نام یا کد شعبه</label><input id="locationSearch" type="search" autocomplete="off" placeholder="نام یا کد شعبه…"><div id="locationButtons" class="location-buttons"></div></div><div id="filterStatus" class="filter-status" role="status" aria-live="polite"></div></section>
+<section class="inventory-filter" aria-labelledby="inventoryFilterTitle"><div class="filter-head"><div><strong id="inventoryFilterTitle">شعب منتخب</strong><span id="activeInventory">همه شعب</span></div><div class="filter-dropdowns"><div id="supervisorFilter"></div><div id="branchFilter"></div></div></div><div id="filterStatus" class="filter-status" role="status" aria-live="polite"></div></section>
 <section class="chart"><div class="chart-top"><div class="chart-title">روند روزانه کل فاکتورها</div><div class="legend"><span class="count-legend">تعداد فاکتورها</span><span class="above-legend">برابر یا بالاتر از میانگین</span><span class="below-legend">پایین‌تر از میانگین</span><span class="total-mean-legend">میانگین کل دوره</span><span class="trend-legend">روند بازه نمایان</span></div></div><svg id="plot" viewBox="0 0 1100 470" role="img" aria-label="روند روزانه فاکتورها در سال ۱۴۰۵"><text x="550" y="210" text-anchor="middle" class="empty">در حال دریافت تعداد فاکتورها…</text></svg><div id="tip" class="tip" hidden></div></section>
 <section class="chart inventory-table" aria-labelledby="inventoryTitle">
 <div class="chart-top"><div><div class="eyebrow">نمای شعب</div><h2 id="inventoryTitle">تحلیل مبلغ فاکتورها به تفکیک شعبه</h2><div class="note">مبالغ به تومان · درصدها از کل فاکتورهای هر شعبه</div></div><div id="tableRange" role="status" aria-live="polite">در حال دریافت…</div></div>
@@ -72,24 +72,10 @@ function makeFilterButton(text,mode,value='',extra='',pressed=null){
 }
 function renderInventoryFilters(data){
  inventoryData=data;const active=data.inventoryFilter;
- $('activeInventory').textContent=`${active.label} · ${fmt(active.inventoryIds.length)} شعبه`;
- const supervisors=[...new Set(data.inventoryOptions.map(x=>x.supervisor))].sort((a,b)=>a.localeCompare(b,'fa'));
- const supervisorRoot=$('supervisorButtons');supervisorRoot.replaceChildren(makeFilterButton('همه شعب','all'));
- supervisors.forEach(name=>supervisorRoot.append(makeFilterButton(name,'supervisor',name)));
- if(active.mode==='supervisor'){visibleSupervisor=active.value;previewSupervisor=''}
- else if(active.mode==='inventory'){visibleSupervisor=data.inventoryOptions.find(x=>x.id===active.value)?.supervisor||visibleSupervisor;previewSupervisor=''}
- else if(active.mode==='selection'){visibleSupervisor='';previewSupervisor='';$('locationPanel').hidden=false;$('locationsToggle').setAttribute('aria-expanded','true')}
- if(visibleSupervisor){$('locationPanel').hidden=false;$('locationsToggle').setAttribute('aria-expanded','true')}
- renderLocationButtons($('locationSearch').value);
+ $('activeInventory').textContent=active.label+' · '+fmt(active.inventoryIds.length)+' شعبه';
+ branchMenus?.update();
 }
-function renderLocationButtons(search=''){
- if(!inventoryData)return;const term=search.trim().toLocaleLowerCase('fa'),root=$('locationButtons');root.replaceChildren();
- const active=inventoryData.inventoryFilter;
- inventoryData.inventoryOptions.filter(x=>(!visibleSupervisor||x.supervisor===visibleSupervisor)&&(!term||`${x.name} ${x.id}`.toLocaleLowerCase('fa').includes(term))).forEach(x=>{
-  const included=(active.mode==='supervisor'&&x.supervisor===active.value)||x.supervisor===previewSupervisor;
-  root.append(makeFilterButton(`${x.name} · ${x.id}`,'inventory',x.id,'inventory',included||filterMatches(active,'inventory',x.id)));
- });
-}
+function renderLocationButtons(){}
 function applyInventoryFilter(mode,value='',event={}){selectSnapshotFilter(mode,value,event)}
 function draw(data){
  const days=data.days,mean=data.mean,today=days.at(-1);
@@ -105,8 +91,6 @@ function draw(data){
 let lastSaved=null,lastFetchStatus=null,readingSnapshot=false;
 async function refresh(quiet=false){return refreshPreparedSnapshot(quiet)}
 
-$('locationsToggle').addEventListener('click',()=>{const panel=$('locationPanel'),open=panel.hidden;panel.hidden=!open;$('locationsToggle').setAttribute('aria-expanded',String(open));if(open)$('locationSearch').focus()});
-$('locationSearch').addEventListener('input',e=>renderLocationButtons(e.target.value));
 
 
 </script>
@@ -156,6 +140,52 @@ function periodDayPhrase(days){return days===1?'.':`این بازه شامل، $
 function setPeriodDayCaption(id,a,b){const el=$(id);if(el)el.textContent=periodDayPhrase(Number(b.value)-Number(a.value)+1)}
 function updateDualSlider(){const a=$('tableStart'),b=$('tableEnd'),max=Number(a.max),width=Math.max(0,a.parentElement.clientWidth-22),start=max?Number(a.value)/max*width:0,end=max?Number(b.value)/max*width:0;a.parentElement.style.setProperty('--range-start',`${11+start}px`);a.parentElement.style.setProperty('--range-width',`${Math.max(0,end-start)}px`);if(tablePayload){for(const [input,output] of [[a,$('tableStartDate')],[b,$('tableEndDate')]]){const date=tablePayload.dates[Number(input.value)];output.textContent=date;input.setAttribute('aria-valuetext',date)}setPeriodDayCaption('tablePeriodDays',a,b)}}
 function renderInventoryTable(d){const fragment=document.createDocumentFragment();for(const x of d.rows){const tr=document.createElement('tr');for(const [i,value] of [x.name||x.id,x.state||'—',x.manager||'—',x.supervisor||'—'].entries()){const td=document.createElement(i===0?'th':'td');if(i===0)td.scope='row';td.textContent=value;tr.append(td)}for(const key of ['low','mid','high','veryhigh']){const n=x[key]||0,p=x.total?100*n/x.total:0,td=document.createElement('td'),cell=document.createElement('div'),count=document.createElement('b'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');cell.className='range-cell';count.textContent=fmt(n);percent.textContent=fmt(p)+'٪';bar.style.width=`${Math.max(0,Math.min(100,p))}%`;track.setAttribute('aria-hidden','true');track.append(bar);cell.append(count,percent,track);td.append(cell);tr.append(td)}const total=document.createElement('td'),badge=document.createElement('b');badge.className='table-total';badge.textContent=fmt(x.total||0);total.append(badge);tr.append(total);fragment.append(tr)}if(!d.rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}$('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`${d.startDate} تا ${d.endDate}`}
+</script>
+<script>// Compact, local-only filtering: editing a menu never requests source data.
+function excelMenu(host,{title,items,selected,multiple=true,apply}){
+ host.classList.add('excel-filter');
+ const trigger=document.createElement('button');trigger.type='button';trigger.className='excel-trigger';trigger.setAttribute('aria-expanded','false');
+ const panel=document.createElement('div');panel.className='excel-menu';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label',title);
+ const search=document.createElement('input');search.type='search';search.placeholder='جست‌وجو…';search.setAttribute('aria-label','جست‌وجو در '+title);
+ const list=document.createElement('div');list.className='excel-options';
+ const all=document.createElement('label');all.className='excel-option excel-all';const allBox=document.createElement('input');allBox.type='checkbox';all.append(allBox,document.createTextNode('(انتخاب همه نتایج)'));
+ const actions=document.createElement('div');actions.className='excel-actions';const ok=document.createElement('button'),cancel=document.createElement('button');ok.type=cancel.type='button';ok.textContent='اعمال';cancel.textContent='انصراف';ok.className='excel-apply';actions.append(ok,cancel);
+ panel.append(search,all,list,actions);host.append(trigger,panel);
+ let draft=new Set(),opener=null;
+ const entries=()=>items(),visible=()=>entries().filter(item=>(item.text+' '+item.id).toLocaleLowerCase('fa').includes(search.value.trim().toLocaleLowerCase('fa')));
+ function updateLabel(){const values=selected(),total=entries().length;trigger.textContent=title+' · '+(values.length===total?'همه':values.length?fmt(values.length)+' انتخاب':'بدون انتخاب')+' ⌄'}
+ function render(){list.replaceChildren();const rows=visible();all.hidden=!multiple;allBox.checked=rows.length>0&&rows.every(item=>draft.has(item.id));allBox.indeterminate=rows.some(item=>draft.has(item.id))&&!allBox.checked;
+  for(const item of rows){const row=document.createElement('label');row.className='excel-option';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=draft.has(item.id);checkbox.dataset.value=item.id;checkbox.addEventListener('change',()=>{if(!multiple)draft.clear();if(checkbox.checked)draft.add(item.id);else draft.delete(item.id);render()});row.append(checkbox,document.createTextNode(item.text));list.append(row)}
+  if(!rows.length){const empty=document.createElement('div');empty.className='excel-empty';empty.textContent='نتیجه‌ای پیدا نشد';list.append(empty)}
+  ok.disabled=!multiple&&draft.size!==1;
+ }
+ function close(){panel.hidden=true;trigger.setAttribute('aria-expanded','false');if(opener)opener.focus()}
+ trigger.addEventListener('click',()=>{if(!panel.hidden){close();return}document.dispatchEvent(new Event('excel-close'));draft=new Set(selected());search.value='';opener=trigger;panel.hidden=false;trigger.setAttribute('aria-expanded','true');render();search.focus()});
+ search.addEventListener('input',render);allBox.addEventListener('change',()=>{visible().forEach(item=>allBox.checked?draft.add(item.id):draft.delete(item.id));render()});
+ ok.addEventListener('click',()=>{apply([...draft]);updateLabel();close()});cancel.addEventListener('click',close);
+ document.addEventListener('excel-close',close);document.addEventListener('pointerdown',event=>{if(!host.contains(event.target)&&!panel.hidden)close()});panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close()}});
+ updateLabel();return {updateLabel,close};
+}
+let branchMenus=null;
+function setupExcelInventoryFilters(){
+ const legacy=document.createElement('input');legacy.type='checkbox';legacy.id='multiInventory';legacy.hidden=true;document.querySelector('.inventory-filter').append(legacy);
+ const groups=()=>[...new Set((inventoryData?.inventoryOptions||[]).map(item=>item.supervisor))].sort((a,b)=>a.localeCompare(b,'fa'));
+ const options=()=>inventoryData?.inventoryOptions||[];
+ const selectedIds=()=>inventoryData?.inventoryFilter?.inventoryIds||[];
+ let chosenGroups=null;
+ function commit(ids){viewFilter={mode:'selection',value:ids.sort().join(','),inventoryIds:ids};persistInventorySelection();renderSnapshotView()}
+ const supervisor=excelMenu($('supervisorFilter'),{title:'معاونت',items:()=>groups().map(name=>({id:name,text:name})),selected:()=>chosenGroups||groups().filter(name=>options().some(item=>item.supervisor===name&&selectedIds().includes(item.id))),apply:names=>{chosenGroups=names;commit(options().filter(item=>names.includes(item.supervisor)).map(item=>item.id))}});
+ const branch=excelMenu($('branchFilter'),{title:'شعبه',items:()=>options().filter(item=>chosenGroups===null||chosenGroups.includes(item.supervisor)).map(item=>({id:item.id,text:item.name+' · '+item.id})),selected:selectedIds,apply:commit});
+ branchMenus={update(){supervisor.updateLabel();branch.updateLabel()},reset(){chosenGroups=null}};
+}
+function enhanceMonthSelectors(){
+ document.querySelectorAll('select').forEach(select=>{
+  if(select.dataset.excelEnhanced)return;select.dataset.excelEnhanced='true';select.hidden=true;
+  const host=document.createElement('span');select.after(host);
+  const menu=excelMenu(host,{title:select.getAttribute('aria-label')||'انتخاب',multiple:false,items:()=>[...select.options].map(option=>({id:option.value,text:option.textContent})),selected:()=>[select.value],apply:values=>{select.value=values[0];select.dispatchEvent(new Event('change',{bubbles:true}))}});
+  new MutationObserver(()=>menu.updateLabel()).observe(select,{childList:true});select.addEventListener('change',menu.updateLabel);
+ });
+}
 </script>
 <script src="dashboard-snapshot.js"></script></html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
@@ -284,4 +314,7 @@ main>.inventory-table{border-top:3px solid #8970ba}
 <style>
 .legend span.count-legend:before{border-color:#287ec0}.legend span.above-legend:before,.legend span.below-legend:before{width:8px;height:8px;border:0;border-radius:50%;background:#168b70}.legend span.below-legend:before{background:#d58b22}.legend span.trend-legend:before{border-top:2px dashed #e27836}
 .plot-comparison .chart-top{align-items:flex-start;gap:12px;flex-wrap:wrap}.plot-comparison .legend{row-gap:10px}.plot-comparison .plot-pane{background:linear-gradient(180deg,#f8fcff,white);border-radius:12px}.plot-comparison .total-point{transition:r .15s}.plot-comparison .total-point:hover,.plot-comparison .total-point:focus{r:6;outline:none}
+</style>
+<style>
+.filter-dropdowns{display:flex;gap:12px;flex-wrap:wrap}.excel-filter{display:inline-block;position:relative;min-width:170px;text-align:right;direction:rtl}.excel-trigger{width:100%;display:flex;justify-content:space-between;background:#fff;color:#285469;border:1px solid #b9d1df;border-radius:8px;min-height:40px;padding:9px 14px;font-size:12px;box-shadow:0 2px 5px #16354e08}.excel-trigger[aria-expanded=true]{border-color:#168b80;background:#effaf8}.excel-menu{position:absolute;inset-inline-start:0;top:calc(100% + 6px);z-index:100;width:310px;max-width:calc(100vw - 48px);padding:12px;background:#fff;border:1px solid #c8d6de;border-radius:10px;box-shadow:0 14px 38px #17344e30}.excel-menu[hidden]{display:none}.excel-menu input[type=search]{width:100%;padding:9px 10px;background:#fff;border:1px solid #c8d6de;border-radius:5px;color:#25465e;font:inherit;font-size:12px}.excel-options{max-height:240px;overflow:auto;margin:7px 0}.excel-option{display:flex!important;align-items:center;gap:9px;padding:8px 6px;border-radius:4px;cursor:pointer;font-size:12px;color:#294960;font-weight:400}.excel-option:hover{background:#edf6fb}.excel-option input{accent-color:#168b80;width:16px;height:16px;flex-shrink:0}.excel-all{border-bottom:1px solid #e3ebf0;border-radius:0;margin-top:8px}.excel-actions{display:flex;gap:8px;border-top:1px solid #e3ebf0;padding-top:10px}.excel-actions button{font-size:12px;min-width:70px;padding:7px 12px;border-radius:5px}.excel-actions .excel-apply{background:#168b80;color:white;border-color:#168b80}.excel-empty{padding:16px;color:#78909d;font-size:12px}.inventory-filter{overflow:visible}.filter-status:empty{display:none}.chart-month-range .excel-filter{min-width:135px}.chart-month-range select[hidden]{display:none}@media(max-width:650px){.filter-dropdowns{width:100%}.filter-dropdowns>.excel-filter{flex:1;min-width:125px}.filter-dropdowns #branchFilter .excel-menu{inset-inline-start:auto;inset-inline-end:0}}
 </style>
