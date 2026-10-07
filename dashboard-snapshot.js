@@ -240,7 +240,7 @@ function snapshotDB(){
 async function saveBrowserSnapshot(bundle){try{const db=await snapshotDB();await new Promise((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(bundle,'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});}catch{}}
 async function restoreBrowserSnapshot(){try{const db=await snapshotDB();const r=db.transaction('snapshots').objectStore('snapshots').get('latest');r.onsuccess=()=>{if(!snapshotBundle&&validSnapshot(r.result)){installSnapshot(r.result);snapshotETag=`"${r.result.version}"`;$('status').textContent='نمایش آخرین داده ذخیره‌شده؛ در حال بررسی بروزرسانی…'}}}catch{}}
 function validSnapshot(b){
- if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.inventoryRestriction!==true||b?.inventoryScope!=='ST-store-excluding-virtual-transit-v2'||b?.completedDaysOnly!==true)return false;
+ if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.inventoryRestriction!==true||b?.inventoryScope!=='ST-active-store-excluding-virtual-transit-v3'||b?.completedDaysOnly!==true)return false;
  if(!b||b.schema!==3||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
