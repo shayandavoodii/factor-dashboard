@@ -496,6 +496,7 @@ function paintInteractiveChart(){
   pane.dataset.trendDirection=falling?'negative':'positive';
   pane.style.setProperty('--trend-color',trendColor);
   pane.style.setProperty('--trend-bright',falling?'#ff8298':'#51e5ad');
+  $('chartTrendStatus').style.setProperty('color',trendColor,'important');
   const trendGeometry={x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),'pointer-events':'none','stroke-linecap':'round'};
   add('line',{...trendGeometry,class:'visible-trend neon-trend-base',stroke:trendColor,'stroke-width':1.15},series);
   add('line',{...trendGeometry,class:'neon-trend-flow',stroke:trendColor,'stroke-width':1.5,'stroke-dasharray':'14 26'},series);
