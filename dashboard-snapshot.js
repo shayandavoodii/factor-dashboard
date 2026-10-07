@@ -423,6 +423,7 @@ function renderInteractiveChart(data){
  chartView.rawData=data;data=aggregateChart(data,chartView.aggregation);
  const previousDate=chartView.data?.days[Math.floor(chartView.start)]?.date;
  chartView.data=data;
+ $('plot').closest('.chart').querySelector('.chart-title').textContent=chartView.aggregation==='daily'?'روند روزانه کل فاکتورها':chartView.aggregation==='monthly'?'مجموع ماهیانه فاکتورها':'مجموع سه ماهه فاکتورها';
  updateChartMonths();
  if(!chartView.initialized){chartView.span=data.days.length;chartView.initialized=true}
  if(chartView.latest)chartView.start=data.days.length-chartView.span;
@@ -495,7 +496,7 @@ function setupChartNavigation(){
   ['chartMonthly','ماهیانه',()=>chartSetAggregation('monthly')],
   ['chartQuarterly','سه ماهه',()=>chartSetAggregation('quarterly')],
   ['chartAutoY','مقیاس خودکار ارتفاع',()=>{chartView.scale=1;chartSchedule()}]]){
-  const button=document.createElement('button');button.type='button';button.id=id;button.textContent=title;button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
+  const button=document.createElement('button');button.type='button';button.id=id;button.textContent=title;if(['chartDaily','chartMonthly','chartQuarterly'].includes(id))button.setAttribute('aria-pressed',String(id==='chartDaily'));button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
  }
  const status=document.createElement('span');status.id='chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
  const monthRange=document.createElement('div');monthRange.className='chart-navigation';
