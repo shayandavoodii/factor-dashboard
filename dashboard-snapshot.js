@@ -471,7 +471,7 @@ function paintInteractiveChart(){
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
  const axisX=add('rect',{x:L,y:B+2,width:R-L,height:H-B-2,fill:'transparent',class:'chart-x-axis'});axisX.style.cursor='ew-resize';
- const axisY=add('rect',{x:R+1,y:T,width:W-R-1,height:B-T,fill:'transparent',class:'chart-y-axis'});axisY.style.cursor='ns-resize';
+ const axisY=add('rect',{x:R+1,y:T,width:W-R-1,height:B-T,fill:'transparent',class:'chart-y-axis'});axisY.style.cursor='default';
  text((L+R)/2,H-10,'↔ برای تغییر مقیاس زمان، محور را بکشید',{'text-anchor':'middle','font-size':10,fill:'#71859a','pointer-events':'none'});
  const scroll=$('chartScroll');scroll.max=Math.max(0,data.days.length-chartView.span);scroll.value=chartView.start;scroll.disabled=Number(scroll.max)===0;
  $('chartWindow').textContent=`${data.days[Math.ceil(chartView.start)].persian} تا ${data.days[Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1))].persian}`;
@@ -507,17 +507,16 @@ function setupChartNavigation(){
  const apply=document.createElement('button');apply.type='button';apply.id=prefix+'chartApplyMonths';apply.dataset.chartId='chartApplyMonths';apply.textContent='نمایش بازه ماه‌ها';apply.addEventListener('click',()=>{if($('chartMonthFrom').value>$('chartMonthTo').value)$('chartMonthTo').value=$('chartMonthFrom').value;chartSelectMonths($('chartMonthFrom').value,$('chartMonthTo').value)});monthRange.append(apply);
  const trendStatus=document.createElement('span');trendStatus.id=prefix+'chartTrendStatus';trendStatus.className='note plot-trend-status';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
  const scroll=document.createElement('input');scroll.type='range';scroll.id=prefix+'chartScroll';scroll.className='plot-scroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
- const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · کشیدن محور راست: تغییر مقیاس ارتفاع · دوبار کلیک: بازنشانی';scroll.after(hint);
+ const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · دوبار کلیک: بازنشانی';scroll.after(hint);
  scroll.addEventListener('input',()=>{chartView.start=Number(scroll.value);chartView.latest=chartView.start>=Number(scroll.max)-.01;chartSchedule()});
  svg.style.height='400px';svg.style.direction='ltr';svg.style.touchAction='pan-y';svg.style.userSelect='none';svg.style.cursor='grab';svg.setAttribute('tabindex','0');svg.setAttribute('aria-label','نمودار تعاملی؛ کلیدهای چپ و راست برای پیمایش، مثبت و منفی برای بزرگ‌نمایی');
  const point=e=>{const r=svg.getBoundingClientRect(),g=chartView.geometry;return {x:(e.clientX-r.left)*g.W/r.width,y:(e.clientY-r.top)*g.H/r.height}};
- svg.addEventListener('wheel',e=>{if(!chartView.data)return;e.preventDefault();const p=point(e),g=chartView.geometry,unit=e.deltaMode===1?16:e.deltaMode===2?400:1,dx=e.deltaX*unit,dy=e.deltaY*unit;if(e.shiftKey||Math.abs(dx)>Math.abs(dy)){chartView.start+=(dx||dy)*chartView.span/600;chartClamp();chartView.latest=false;chartSchedule()}else if(p.x>g.R){chartView.scale*=Math.exp(dy*.002);chartClamp();chartSchedule()}else chartZoom(Math.exp(Math.max(-1,Math.min(1,dy*.002))),Math.max(0,Math.min(1,(p.x-g.L)/(g.R-g.L))))},{passive:false});
- svg.addEventListener('pointerdown',e=>{if(!chartView.data||e.button!==0)return;const p=point(e),g=chartView.geometry;chartView.drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:chartView.start,span:chartView.span,scale:chartView.scale,mode:p.x>g.R?'y':p.y>g.B?'x':'pan'};try{svg.setPointerCapture(e.pointerId)}catch{}$('tip').hidden=true});
+ svg.addEventListener('wheel',e=>{if(!chartView.data)return;e.preventDefault();const p=point(e),g=chartView.geometry,unit=e.deltaMode===1?16:e.deltaMode===2?400:1,dx=e.deltaX*unit,dy=e.deltaY*unit;if(e.shiftKey||Math.abs(dx)>Math.abs(dy)){chartView.start+=(dx||dy)*chartView.span/600;chartClamp();chartView.latest=false;chartSchedule()}else if(p.x>g.R){return}else chartZoom(Math.exp(Math.max(-1,Math.min(1,dy*.002))),Math.max(0,Math.min(1,(p.x-g.L)/(g.R-g.L))))},{passive:false});
+ svg.addEventListener('pointerdown',e=>{if(!chartView.data||e.button!==0)return;const p=point(e),g=chartView.geometry;if(p.x>g.R)return;chartView.drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:chartView.start,span:chartView.span,scale:chartView.scale,mode:p.y>g.B?'x':'pan'};try{svg.setPointerCapture(e.pointerId)}catch{}$('tip').hidden=true});
  svg.addEventListener('pointermove',e=>{
   if(!chartView.data)return;const drag=chartView.drag,g=chartView.geometry;
   if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-   if(drag.mode==='y')chartView.scale=drag.scale*Math.exp(dy/150);
-   else if(drag.mode==='x'){const right=drag.start+drag.span;chartView.span=drag.span*Math.exp(-dx/200);chartClamp();chartView.start=right-chartView.span;chartView.latest=right>=chartView.data.days.length-.01}
+   if(drag.mode==='x'){const right=drag.start+drag.span;chartView.span=drag.span*Math.exp(-dx/200);chartClamp();chartView.start=right-chartView.span;chartView.latest=right>=chartView.data.days.length-.01}
    else{chartView.start=drag.start-dx*(drag.span-1)/(g.R-g.L);chartView.latest=false}
    chartClamp();chartSchedule();
   }else{const p=point(e);if(p.x>=g.L&&p.x<=g.R&&p.y>=g.T&&p.y<=g.B)chartTooltip(Math.max(0,Math.min(chartView.data.days.length-1,Math.round(chartView.start+(p.x-g.L)/(g.R-g.L)*(chartView.span-1)))));else $('tip').hidden=true}
@@ -574,8 +573,6 @@ setupComparison();setupTableSorting();
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
 if(publicSnapshotMode){
- document.querySelector('.automation').hidden=true;
- document.querySelector('.automation').style.display='none';
  $('refresh').removeEventListener('click',forceRefresh);
  $('refresh').addEventListener('click',()=>refresh());
  $('buttonText').textContent='بررسی بروزرسانی';
