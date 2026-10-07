@@ -372,7 +372,16 @@ window.addEventListener('resize',updateDualSlider);
 function createIndependentChart(root,prefix=''){
  const $=id=>document.getElementById(prefix+id);
  const el=(tag,attrs,parent=$('plot'))=>{const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e};
-const chartView={metric:'count',data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+const chartView={selectedMonths:null,selectedDays:null,metric:'count',data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
+let monthMenu=null,dayMenu=null;
+const availableMonths=()=>[...new Set((chartView.rawData?.days||[]).map(day=>chartMonthKey(day.persian)))];
+const availableDays=()=>[...new Set((chartView.rawData?.days||[]).filter(day=>chartView.selectedMonths===null||chartView.selectedMonths.includes(chartMonthKey(day.persian))).map(day=>chartDateKey(day.persian).slice(6,8)))].sort();
+function applyPlotSelection(kind,values){
+ const available=kind==='Months'?availableMonths():availableDays();
+ chartView['selected'+kind]=values.length===available.length&&available.every(value=>values.includes(value))?null:values;
+ if(kind==='Months'&&chartView.selectedDays!==null)chartView.selectedDays=chartView.selectedDays.filter(day=>availableDays().includes(day));
+ chartView.initialized=false;chartView.latest=true;renderInteractiveChart(chartView.rawData);
+}
 function aggregateChart(data,mode){
  if(mode==='daily')return data;
  const groups=new Map();
@@ -444,7 +453,10 @@ function chartZoom(factor,anchor=.5){
  const position=chartView.start+(chartView.span-1)*anchor;chartView.span*=factor;chartClamp();chartView.start=position-(chartView.span-1)*anchor;chartClamp();chartView.latest=chartView.start>=chartView.data.days.length-chartView.span-.01;chartSchedule();
 }
 function renderInteractiveChart(data){
- chartView.rawData=data;data=aggregateChart(data,chartView.aggregation);
+ chartView.rawData=data;
+ const chosen=data.days.filter(day=>(chartView.selectedMonths===null||chartView.selectedMonths.includes(chartMonthKey(day.persian)))&&(chartView.selectedDays===null||chartView.selectedDays.includes(chartDateKey(day.persian).slice(6,8))));
+ data=aggregateChart({...data,days:chosen,mean:chosen.length?chosen.reduce((sum,day)=>sum+day.count,0)/chosen.length:0},chartView.aggregation);
+ monthMenu?.updateLabel();dayMenu?.updateLabel();
  const previousDate=chartView.data?.days[Math.floor(chartView.start)]?.date;
  chartView.data=data;
  $('plot').closest('.chart').querySelector('.chart-title').textContent=chartView.aggregation==='daily'?'روند روزانه کل فاکتورها':chartView.aggregation==='monthly'?'مجموع ماهیانه فاکتورها':'مجموع سه ماهه فاکتورها';
@@ -455,6 +467,7 @@ function renderInteractiveChart(data){
  chartClamp();paintInteractiveChart();
 }
 function paintInteractiveChart(){
+ if(!chartView.data?.days.length){$('plot').replaceChildren();const empty=el('text',{x:20,y:70,class:'empty'});empty.textContent='برای ماه‌ها و روزهای انتخاب‌شده داده‌ای وجود ندارد.';$('tip').hidden=true;$('chartTrendStatus').textContent='';$('chartNetAverage').textContent='میانگین خالص بازه نمایان: —';$('chartWindow').textContent='بدون داده';$('chartScroll').disabled=true;return}
  let data=chartView.data;if(!data?.days.length)return;const amountMode=chartView.metric==='averageNet';const pane=$('plot').closest('.chart');pane.querySelector('.chart-title').textContent=amountMode?'میانگین خالص هر فاکتور (تومان)':chartView.aggregation==='daily'?'روند روزانه کل فاکتورها':chartView.aggregation==='monthly'?'مجموع ماهیانه فاکتورها':'مجموع سه ماهه فاکتورها';pane.querySelector('.count-legend').textContent=amountMode?'میانگین خالص هر فاکتور':'تعداد فاکتورها';if(amountMode){const net=data.days.reduce((s,d)=>s+d.netAmount,0),count=data.days.reduce((s,d)=>s+d.count,0);data={...data,mean:averageNet(net,count)||0,days:data.days.map(day=>({...day,count:averageNet(day.netAmount,day.count)}))}}const visibleRaw=chartView.data.days.slice(Math.ceil(chartView.start),Math.floor(chartView.start+chartView.span));const net=visibleRaw.reduce((s,d)=>s+d.netAmount,0),count=visibleRaw.reduce((s,d)=>s+d.count,0);$('chartNetAverage').textContent='میانگین خالص بازه نمایان: '+(count?fmt(net/count)+' تومان':'—');
  chartClamp();const svg=$('plot');svg.replaceChildren();$('tip').hidden=true;
  const W=svg.clientWidth||1000,H=400,L=18,R=W-84,T=30,B=326;
@@ -537,10 +550,14 @@ function setupChartNavigation(){
  const status=document.createElement('span');status.id=prefix+'chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
  const metric=document.createElement('button');metric.type='button';metric.textContent='میانگین خالص هر فاکتور';metric.id=prefix+'chartNetMetric';metric.setAttribute('aria-pressed','false');metric.addEventListener('click',()=>{chartView.metric=chartView.metric==='count'?'averageNet':'count';metric.setAttribute('aria-pressed',String(chartView.metric==='averageNet'));chartSchedule()});toolbar.append(metric);const netNote=document.createElement('span');netNote.id=prefix+'chartNetAverage';netNote.className='note';toolbar.append(netNote);const monthRange=document.createElement('div');monthRange.className='chart-navigation';
  for(const [side,title] of [['From','از'],['To','تا']]){
-  const group=document.createElement('div');group.className='plot-date-boundary';const heading=document.createElement('strong');heading.textContent=title;group.append(heading);
+  const group=document.createElement('div');group.className='plot-date-boundary';group.hidden=true;const heading=document.createElement('strong');heading.textContent=title;group.append(heading);
   for(const [kind,name] of [['Month','ماه'],['Day','روز']]){const label=document.createElement('label');label.textContent=name+' ';const select=document.createElement('select');select.id=prefix+'chart'+kind+side;select.setAttribute('aria-label',title+' '+name+' شمسی');select.addEventListener('change',()=>{if(kind==='Month')updateChartDays(side,false);chartSelectDates()});label.append(select);group.append(label)}
   monthRange.append(group);
  }
+ const menus=document.createElement('div');menus.className='plot-filter-menus';
+ const monthHost=document.createElement('div'),dayHost=document.createElement('div');monthHost.id=prefix+'chartMonthsFilter';dayHost.id=prefix+'chartDaysFilter';menus.append(monthHost,dayHost);monthRange.append(menus);
+ monthMenu=new ExcelFilter(monthHost,{title:'ماه',items:()=>availableMonths().map(month=>({id:month,text:fa(month.slice(0,4))+'/'+fa(month.slice(4))})),selected:()=>chartView.selectedMonths===null?availableMonths():chartView.selectedMonths.filter(month=>availableMonths().includes(month)),apply:values=>applyPlotSelection('Months',values)});
+ dayMenu=new ExcelFilter(dayHost,{title:'روز',items:()=>availableDays().map(day=>({id:day,text:fa(day)})),selected:()=>chartView.selectedDays===null?availableDays():chartView.selectedDays.filter(day=>availableDays().includes(day)),apply:values=>applyPlotSelection('Days',values)});
 
  const trendStatus=document.createElement('span');trendStatus.id=prefix+'chartTrendStatus';trendStatus.className='note plot-trend-status';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
  const scroll=document.createElement('input');scroll.type='range';scroll.id=prefix+'chartScroll';scroll.className='plot-scroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);

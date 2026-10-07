@@ -195,6 +195,7 @@ function setupExcelInventoryFilters(){
 }
 function enhanceMonthSelectors(){
  document.querySelectorAll('select').forEach(select=>{
+  if(select.closest('.plot-date-boundary')){select.hidden=true;return}
   if(select.dataset.excelEnhanced)return;select.dataset.excelEnhanced='true';select.hidden=true;
   const host=document.createElement('span');select.after(host);
   const menu=excelMenu(host,{title:select.getAttribute('aria-label')||'انتخاب',multiple:false,items:()=>[...select.options].map(option=>({id:option.value,text:option.textContent})),selected:()=>[select.value],apply:values=>{select.value=values[0];select.dispatchEvent(new Event('change',{bubbles:true}))}});
@@ -228,7 +229,7 @@ function enhanceMonthSelectors(){
 .plot-date-boundary .excel-filter{min-width:100px}.plot-date-boundary label:last-child .excel-filter{min-width:60px}.filter-dropdowns .excel-filter{min-width:160px}
 @media(max-width:650px){.filter-dropdowns .excel-filter{min-width:125px}.excel-selected{max-width:145px}}
 </style>
-</html>
+<style>.plot-date-boundary[hidden]{display:none!important}.plot-filter-menus{display:flex;gap:12px;flex-wrap:wrap}.plot-filter-menus .excel-filter{min-width:135px}.plot-filter-menus .excel-menu{width:245px}@media(max-width:650px){.plot-filter-menus{width:100%}.plot-filter-menus .excel-filter{flex:1;min-width:100px}.plot-filter-menus .excel-filter:last-child .excel-menu{inset-inline-start:auto;inset-inline-end:0}}</style></html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
 
 <style id="light-dashboard">
