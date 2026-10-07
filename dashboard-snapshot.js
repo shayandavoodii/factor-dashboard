@@ -525,6 +525,15 @@ function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  const tip=$('tip');tip.replaceChildren();
  for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`میانگین خالص هر فاکتور: ${day.count?fmt(day.netAmount/day.count)+' تومان':'—'}`].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ if(previous){
+  const amount=chartView.metric==='averageNet',current=amount?averageNet(day.netAmount,day.count):day.count,prior=amount?averageNet(previous.netAmount,previous.count):previous.count;
+  const line=document.createElement('div');
+  const change=current===null||prior===null?null:current-prior;
+  const direction=change===null?'مقایسه در دسترس نیست':change>0?'رشد':change<0?'افت':'بدون تغییر';
+  const rate=change!==null&&prior!==0?' '+fmt(Math.abs(change/prior*100))+'٪':change===0?'':change!==null?' · مبنای قبلی صفر است':'';
+  line.textContent=`${direction}${rate} · ${amount?'میانگین خالص هر فاکتور':'تعداد فاکتورها'} نسبت به ${previous.persian}`;
+  line.style.color=change===null||change===0?'#60748a':change>0?'#168b70':'#d54862';tip.append(line);
+ }
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const plottedValue=chartView.metric==='averageNet'?(averageNet(day.netAmount,day.count)||0):day.count;
