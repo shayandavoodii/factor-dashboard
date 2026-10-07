@@ -177,7 +177,7 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
 }
 let branchMenus=null;
 function setupExcelInventoryFilters(){
- const cards=document.querySelector('.cards');for(const [id,title] of [['averageNetCard','میانگین خالص هر فاکتور · کل دوره'],['lastNetCard','میانگین خالص هر فاکتور · آخرین روز']]){const card=document.createElement('div');card.className='card';const heading=document.createElement('strong');heading.textContent=title;const value=document.createElement('div');value.className='value';value.id=id;value.textContent='—';const unit=document.createElement('span');unit.className='note';unit.textContent='تومان · مجموع مبلغ خالص ÷ تعداد فاکتور';card.append(heading,value,unit);cards.append(card)}
+ const cards=document.querySelector('.cards');for(const [id,title] of [['averageNetCard','میانگین خالص هر فاکتور · کل دوره'],['lastNetCard','میانگین خالص هر فاکتور · آخرین روز']]){const card=document.createElement('div');card.className='card';const heading=document.createElement('div');heading.className='label';const headingText=document.createElement('b');headingText.textContent=title;heading.append(headingText);const value=document.createElement('div');value.className='value';value.id=id;value.textContent='—';const unit=document.createElement('span');unit.className='note';unit.textContent='تومان · مجموع مبلغ خالص ÷ تعداد فاکتور';card.append(heading,value,unit);cards.append(card)}
 
  const legacy=document.createElement('input');legacy.type='checkbox';legacy.id='multiInventory';legacy.checked=viewFilter.mode==='selection';legacy.hidden=true;document.querySelector('.inventory-filter').append(legacy);
  const groups=()=>[...new Set((inventoryData?.inventoryOptions||[]).map(item=>item.supervisor))].sort((a,b)=>a.localeCompare(b,'fa'));
