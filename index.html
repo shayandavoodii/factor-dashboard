@@ -230,7 +230,8 @@ function renderInventoryTable(d){const fragment=document.createDocumentFragment(
 <style id="light-dashboard">
 :root{color-scheme:light;--ink:#172b45;--muted:#64748b;--line:#e3eaf1;--accent:#147d78;--surface:#fff;--shadow:0 8px 28px #19324d07}
 body{background:#f4f7fa;color:var(--ink);margin:0}
-main{max-width:1440px;margin:0 auto;padding:36px 40px 0;display:flex;flex-direction:column;gap:20px}
+main{width:100%;max-width:1440px;min-width:0;margin:0 auto;padding:36px 40px 0;display:flex;flex-direction:column;gap:20px}
+main>*{min-width:0}
 main>.eyebrow{order:0;margin:0;color:var(--accent);font-size:11px;letter-spacing:0}
 main>header{order:1;margin:-12px 0 0;padding-bottom:18px;border-bottom:1px solid var(--line);align-items:center}
 h1{font-size:clamp(25px,2.5vw,34px);color:var(--ink);margin:0;line-height:1.7}
@@ -256,7 +257,7 @@ button:before{display:none}button:hover{transform:none;background:#e3edf3;box-sh
 #refresh{background:#17344e;color:#fff;border-color:#17344e;padding:11px 20px;min-height:44px}
 #refresh:hover{background:#24516c}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #168b80;outline-offset:3px}
 .inventory-filter{padding:20px 24px}.filter-head strong{color:var(--ink);font-size:14px}#activeInventory{color:#147d78;background:#edf8f5;border:1px solid #d6ece5;padding:4px 10px;border-radius:7px}
-.filter-head{align-items:center}.locations-toggle{background:#f7f9fc;color:#465b72;border-color:var(--line)}
+.filter-head{align-items:center}.inventory-filter #activeInventory{color:#147d78;background:#edf8f5;border-color:#d6ece5}.locations-toggle{background:#f7f9fc;color:#465b72;border-color:var(--line)}
 .supervisor-buttons,.location-buttons{gap:8px}.filter-chip{color:#52657b;background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 14px}
 .filter-chip:hover{transform:none;background:#edf5f5;border-color:#a8d3cb;box-shadow:none}
 .filter-chip[aria-pressed="true"],.filter-chip.inventory[aria-pressed="true"]{color:#11675f;background:#e7f5ef;border-color:#a8d6c5;box-shadow:none}
@@ -270,6 +271,7 @@ main .chart-navigation{margin-top:16px;padding:10px 12px;background:#f7f9fc;bord
 main .chart-navigation button{background:#fff;color:#405871;border:1px solid #dce5ed;border-radius:7px;padding:6px 12px;box-shadow:none}
 main .chart-navigation select{background:#fff;color:#29425b;border:1px solid #dce5ed;border-radius:7px;padding:5px 10px;font-family:inherit}
 main .chart-navigation label{color:#60748a}#chartWindow{margin-inline-start:auto;color:#60748a}#chartTrendStatus{color:#a2701d!important}
+main .chart-navigation button:hover{background:#e8f3ef;color:#136e61}main #chartScroll{accent-color:#168b80}
 #chartScroll{accent-color:#168b80}#plot{margin-top:16px}.tip{background:#fffffff7;color:var(--ink);border:1px solid #cededb;box-shadow:0 10px 30px #19324d1a;border-radius:12px}.tip strong{color:#13796e}.empty{fill:#667a91}
 .inventory-table{width:calc(100% - 80px);max-width:1360px;margin:0 auto 36px;padding:26px 28px;border-top:1px solid var(--line)}
 .inventory-table h2{color:var(--ink);font-size:19px}.inventory-table .eyebrow{color:#147d78}.inventory-table #tableRange{background:#f1f7f5;color:#236c62;border:1px solid #deebe6;box-shadow:none;border-radius:9px}
