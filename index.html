@@ -153,7 +153,7 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
  panel.append(search,all,list,actions);host.append(trigger,panel);
  let draft=new Set(),opener=null;
  const entries=()=>items(),visible=()=>entries().filter(item=>(item.text+' '+item.id).toLocaleLowerCase('fa').includes(search.value.trim().toLocaleLowerCase('fa')));
- function updateLabel(){const values=selected(),total=entries().length;trigger.textContent=title+' · '+(values.length===total?'همه':values.length?fmt(values.length)+' انتخاب':'بدون انتخاب')+' ⌄'}
+ function updateLabel(){const values=selected(),total=entries().length;trigger.textContent=title+' · '+(!multiple?(entries().find(item=>item.id===values[0])?.text||'—'):values.length===total?'همه':values.length?fmt(values.length)+' انتخاب':'بدون انتخاب')+' ⌄'}
  function render(){list.replaceChildren();const rows=visible();all.hidden=!multiple;allBox.checked=rows.length>0&&rows.every(item=>draft.has(item.id));allBox.indeterminate=rows.some(item=>draft.has(item.id))&&!allBox.checked;
   for(const item of rows){const row=document.createElement('label');row.className='excel-option';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=draft.has(item.id);checkbox.dataset.value=item.id;checkbox.addEventListener('change',()=>{if(!multiple)draft.clear();if(checkbox.checked)draft.add(item.id);else draft.delete(item.id);render()});row.append(checkbox,document.createTextNode(item.text));list.append(row)}
   if(!rows.length){const empty=document.createElement('div');empty.className='excel-empty';empty.textContent='نتیجه‌ای پیدا نشد';list.append(empty)}
@@ -168,7 +168,7 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
 }
 let branchMenus=null;
 function setupExcelInventoryFilters(){
- const legacy=document.createElement('input');legacy.type='checkbox';legacy.id='multiInventory';legacy.hidden=true;document.querySelector('.inventory-filter').append(legacy);
+ const legacy=document.createElement('input');legacy.type='checkbox';legacy.id='multiInventory';legacy.checked=viewFilter.mode==='selection';legacy.hidden=true;document.querySelector('.inventory-filter').append(legacy);
  const groups=()=>[...new Set((inventoryData?.inventoryOptions||[]).map(item=>item.supervisor))].sort((a,b)=>a.localeCompare(b,'fa'));
  const options=()=>inventoryData?.inventoryOptions||[];
  const selectedIds=()=>inventoryData?.inventoryFilter?.inventoryIds||[];
@@ -183,7 +183,7 @@ function enhanceMonthSelectors(){
   if(select.dataset.excelEnhanced)return;select.dataset.excelEnhanced='true';select.hidden=true;
   const host=document.createElement('span');select.after(host);
   const menu=excelMenu(host,{title:select.getAttribute('aria-label')||'انتخاب',multiple:false,items:()=>[...select.options].map(option=>({id:option.value,text:option.textContent})),selected:()=>[select.value],apply:values=>{select.value=values[0];select.dispatchEvent(new Event('change',{bubbles:true}))}});
-  new MutationObserver(()=>menu.updateLabel()).observe(select,{childList:true});select.addEventListener('change',menu.updateLabel);
+  new MutationObserver(()=>menu.updateLabel()).observe(select,{childList:true});select.addEventListener('change',menu.updateLabel);select.excelUpdate=menu.updateLabel;
  });
 }
 </script>
