@@ -307,7 +307,16 @@ function selectSnapshotFilter(mode,value='',event={}){
  else if(mode==='all'){visibleSupervisor='';previewSupervisor=''}
  renderSnapshotView();
 }
+function renderUpdatedCard(timestamp){
+ const date=new Date(timestamp*1000),options={timeZone:'Asia/Tehran'};
+ const time=$('updatedAt');time.dateTime=date.toISOString();
+ time.textContent=new Intl.DateTimeFormat('fa-IR',{...options,hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
+ time.title=new Intl.DateTimeFormat('fa-IR',{...options,dateStyle:'full',timeStyle:'short'}).format(date);
+ $('updatedMonth').textContent=new Intl.DateTimeFormat('fa-IR',{...options,month:'long',year:'numeric'}).format(date);
+ $('updatedDay').textContent=new Intl.DateTimeFormat('fa-IR',{...options,day:'numeric'}).format(date);
+}
 function installSnapshot(bundle){
+ renderUpdatedCard(bundle.fetchedAt);
  const previousComparison=readComparisonRange();
  snapshotBundle=bundle;additiveScopeCache.clear();const next=bundle.table;
  if(next){
@@ -573,11 +582,6 @@ setupComparison();setupTableSorting();
 
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
-if(publicSnapshotMode){
- $('refresh').removeEventListener('click',forceRefresh);
- $('refresh').addEventListener('click',()=>refresh());
- $('buttonText').textContent='بررسی بروزرسانی';
- setInterval(()=>refresh(true),60000);
-}else{
+setInterval(()=>refresh(true),publicSnapshotMode?60000:15000);else{
  setInterval(()=>refresh(true),15000);
 }
