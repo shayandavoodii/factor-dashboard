@@ -88,7 +88,7 @@ function draw(data){
  $('todayNote').textContent=`${isolate(today.persian)} · بدون فیلتر ساعت · داده امروز هنوز کامل نیست`;
  $('mean').textContent=fmt(mean);$('delta').textContent=percent(today.count,mean);
  $('deltaNote').textContent=`${fmt(Math.abs(today.count-mean))} فاکتور ${today.count>=mean?'بیشتر':'کمتر'} از میانگین در همین بازه`;
- $('window').textContent='سال ۱۴۰۵ · بدون فیلتر ساعت، بارکد یا وضعیت شعبه · ماه‌های گذشته از آرشیو ذخیره‌شده';
+ $('window').textContent='سال ۱۴۰۵ · تمام فاکتورها و شعب · ماه‌های گذشته از آرشیو ذخیره‌شده';
 
  renderInteractiveChart(data);
 }

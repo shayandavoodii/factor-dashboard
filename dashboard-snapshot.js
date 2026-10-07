@@ -458,7 +458,7 @@ function paintInteractiveChart(){
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  const tip=$('tip');tip.replaceChildren();
- for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین روزهای تکمیل‌شده: ${percent(day.count,data.mean)}`,'FamilyDWH · بدون فیلتر ساعت یا بارکد']){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین روزهای تکمیل‌شده: ${percent(day.count,data.mean)}`,'FamilyDWH · تمام فاکتورها']){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
