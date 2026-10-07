@@ -243,4 +243,30 @@ function setPeriodDayCaption(id,a,b){const el=$(id);if(el)el.textContent=periodD
 function updateDualSlider(){const a=$('tableStart'),b=$('tableEnd'),max=Number(a.max),width=Math.max(0,a.parentElement.clientWidth-22),start=max?Number(a.value)/max*width:0,end=max?Number(b.value)/max*width:0;a.parentElement.style.setProperty('--range-start',`${11+start}px`);a.parentElement.style.setProperty('--range-width',`${Math.max(0,end-start)}px`);if(tablePayload){for(const [input,output] of [[a,$('tableStartDate')],[b,$('tableEndDate')]]){const date=tablePayload.dates[Number(input.value)];output.textContent=date;input.setAttribute('aria-valuetext',date)}setPeriodDayCaption('tablePeriodDays',a,b)}}
 function renderInventoryTable(d){const fragment=document.createDocumentFragment();for(const x of d.rows){const tr=document.createElement('tr');for(const [i,value] of [x.name||x.id,x.state||'—',x.manager||'—',x.supervisor||'—'].entries()){const td=document.createElement(i===0?'th':'td');if(i===0)td.scope='row';td.textContent=value;tr.append(td)}for(const key of ['low','mid','high','veryhigh']){const n=x[key]||0,p=x.total?100*n/x.total:0,td=document.createElement('td'),cell=document.createElement('div'),count=document.createElement('b'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');cell.className='range-cell';count.textContent=fmt(n);percent.textContent=fmt(p)+'٪';bar.style.width=`${Math.max(0,Math.min(100,p))}%`;track.setAttribute('aria-hidden','true');track.append(bar);cell.append(count,percent,track);td.append(cell);tr.append(td)}const total=document.createElement('td'),badge=document.createElement('b');badge.className='table-total';badge.textContent=fmt(x.total||0);total.append(badge);tr.append(total);fragment.append(tr)}if(!d.rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}$('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`${d.startDate} تا ${d.endDate}`}
 </script>
-<script src="monthly-monitor.js"></script><script src="dashboard-snapshot.js"></script></html>
+<script>// Persian month/day keys come exclusively from the FamilyDWH snapshot calendar.
+(()=>{
+ const panel=document.createElement('section');panel.className='chart inventory-table';
+ panel.innerHTML='<h2>پایش روزانه فاکتور شعب در ماه‌های شمسی</h2><div style="display:flex;gap:16px;flex-wrap:wrap"><label>ماه شمسی <select id="monitorMonth"></select></label><label>شعبه <select id="monitorInventory"></select></label></div><p id="monitorStatus" class="note"></p><div class="table-scroll"><table><thead id="monitorHead"></thead><tbody id="monitorBody"></tbody></table></div>';
+ document.querySelector('main').prepend(panel);
+ const month=panel.querySelector('#monitorMonth'),inventory=panel.querySelector('#monitorInventory');let table;
+ const key=date=>String(date).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g,'');
+ const number=new Intl.NumberFormat('fa-IR');
+ function option(select,value,label){const node=document.createElement('option');node.value=value;node.textContent=label;select.append(node)}
+ function cell(row,label,tag='td'){const node=document.createElement(tag);node.textContent=label;row.append(node)}
+ function render(){
+  if(!table)return;const days=table.dates.map((date,i)=>({date,i,key:key(date)})).filter(d=>d.key.slice(0,6)===month.value);
+  const head=document.createElement('tr');cell(head,'شعبه','th');days.forEach(d=>cell(head,number.format(Number(d.key.slice(6))),'th'));cell(head,'جمع ماه','th');panel.querySelector('#monitorHead').replaceChildren(head);
+  const fragment=document.createDocumentFragment();let total=0;
+  table.inventories.forEach((meta,i)=>{if(inventory.value&&meta.id!==inventory.value)return;const row=document.createElement('tr');cell(row,meta.name||meta.id,'th');let sum=0;days.forEach(d=>{const count=table.daily[d.i][i][0];sum+=count;cell(row,number.format(count))});cell(row,number.format(sum));total+=sum;fragment.append(row)});
+  panel.querySelector('#monitorBody').replaceChildren(fragment);
+  panel.querySelector('#monitorStatus').textContent=`کل فاکتور: ${number.format(total)} · روز جاری ناقص است · آخرین دریافت: ${new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',dateStyle:'short',timeStyle:'short'}).format(new Date(table.fetchedAt*1000))}`;
+ }
+ window.updateMonthlyMonitor=bundle=>{
+  if(!bundle.table)return;table=bundle.table;const previous=month.value,branch=inventory.value;month.replaceChildren();inventory.replaceChildren();
+  [...new Set(table.dates.map(d=>key(d).slice(0,6)))].forEach(m=>option(month,m,`${m.slice(0,4)}/${m.slice(4)}`));
+  month.value=[...month.options].some(o=>o.value===previous)?previous:month.options[month.options.length-1]?.value;
+  option(inventory,'','همه شعب');table.inventories.forEach(m=>option(inventory,m.id,`${m.name||m.id} (${m.id})`));inventory.value=[...inventory.options].some(o=>o.value===branch)?branch:'';render();
+ };
+ month.addEventListener('change',render);inventory.addEventListener('change',render);
+})();
+</script><script src="dashboard-snapshot.js"></script></html>
