@@ -524,7 +524,7 @@ function paintInteractiveChart(){
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  const tip=$('tip');tip.replaceChildren();
- for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`میانگین خالص هر فاکتور: ${day.count?fmt(day.netAmount/day.count)+' تومان':'—'}`,`نسبت به میانگین دوره‌ها: ${percent(day.count,data.mean)}`,'تمام فاکتورها'].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`میانگین خالص هر فاکتور: ${day.count?fmt(day.netAmount/day.count)+' تومان':'—'}`].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const plottedValue=chartView.metric==='averageNet'?(averageNet(day.netAmount,day.count)||0):day.count;
