@@ -240,6 +240,7 @@ function snapshotDB(){
 async function saveBrowserSnapshot(bundle){try{const db=await snapshotDB();await new Promise((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(bundle,'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});}catch{}}
 async function restoreBrowserSnapshot(){try{const db=await snapshotDB();const r=db.transaction('snapshots').objectStore('snapshots').get('latest');r.onsuccess=()=>{if(!snapshotBundle&&validSnapshot(r.result)){installSnapshot(r.result);snapshotETag=`"${r.result.version}"`;$('status').textContent='نمایش آخرین داده ذخیره‌شده؛ در حال بررسی بروزرسانی…'}}}catch{}}
 function validSnapshot(b){
+ if(b?.hourFiltering!==false||b?.persianYear!==1405)return false;
  if(!b||b.schema!==2||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
@@ -274,7 +275,8 @@ function chartForScope(scope){
  const days=base.days.map((d,i)=>({...d,count:view.counts[i],selectedCount:view.selectedCounts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j],selectedCount:view.selectedHours[i][j]}))}));
  const history=days.filter(d=>!d.today&&!d.future),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- return {...base,days,inventoryFilter:view.filter,mean:mean('count'),selectedMean:mean('selectedCount'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:days.at(-1).date,dateMismatch:days.at(-1).date!==today}};
+ const asOf=days.find(d=>d.today)?.date||days.at(-1).date;
+ return {...base,days,inventoryFilter:view.filter,mean:mean('count'),selectedMean:mean('selectedCount'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:asOf,dateMismatch:asOf!==today}};
 }
 function renderSnapshotView(){
  if(!snapshotBundle)return;
@@ -374,7 +376,7 @@ function chartTrend(days,first,last){
  const center=points.reduce((s,p)=>s+p[0],0)/points.length,mean=points.reduce((s,p)=>s+p[1],0)/points.length;
  let numerator=0,denominator=0;for(const [x,y] of points){numerator+=(x-center)*(y-mean);denominator+=(x-center)**2}
  if(!denominator)return null;const slope=numerator/denominator;
- return {slope,intercept:mean-slope*center,mean};
+ return {slope,intercept:mean-slope*center,mean,first:points[0][0],last:points.at(-1)[0]};
 }
 function chartSelectMonths(from,to=from){
  const days=chartView.data?.days;if(!days?.length)return;
@@ -383,7 +385,7 @@ function chartSelectMonths(from,to=from){
  chartView.start=first;chartView.span=last-first+1;chartView.scale=1;chartView.latest=last===days.length-1;chartView.initialized=true;chartClamp();chartSchedule();
 }
 function chartRecentMonths(count){
- const months=[...new Set(chartView.data.days.map(d=>chartMonthKey(d.persian)))];chartSelectMonths(months[Math.max(0,months.length-count)],months.at(-1));
+ const months=[...new Set(chartView.data.days.filter(d=>!d.future).map(d=>chartMonthKey(d.persian)))];if(months.length)chartSelectMonths(months[Math.max(0,months.length-count)],months.at(-1));
 }
 window.monitorChartMonth=month=>chartSelectMonths(month);
 window.monitorChartInventory=id=>{viewFilter=id?{mode:'inventory',value:id}:{mode:'all',value:''};renderSnapshotView()};
@@ -419,7 +421,7 @@ function paintInteractiveChart(){
  const first=Math.floor(chartView.start),last=Math.min(data.days.length-1,Math.ceil(chartView.start+chartView.span-1));
  const trendFirst=Math.ceil(chartView.start),trendLast=Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1));
  const trend=chartTrend(data.days,trendFirst,trendLast);chartView.trend=trend;
- const fitted=trend?[trend.intercept+trend.slope*trendFirst,trend.intercept+trend.slope*trendLast]:[];
+ const fitted=trend?[trend.intercept+trend.slope*trend.first,trend.intercept+trend.slope*trend.last]:[];
  const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,data.selectedMean,...fitted,...visible.flatMap(d=>[d.count,d.selectedCount]))*1.18*chartView.scale;
  const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
  chartView.geometry={W,H,L,R,T,B,x,y};
@@ -433,16 +435,18 @@ function paintInteractiveChart(){
  }
  const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
  for(const [field,color,cls,offset] of [['count','#82ffe3','total',-13],['selectedCount','#ffbd8c','selected',21]]){
-  const path=visible.map((d,j)=>`${j?'L':'M'} ${x(first+j)} ${y(d[field])}`).join(' ');
+  const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>!d.future||d[field]>0);
+  const path=points.map(({d,i},j)=>`${j?'L':'M'} ${x(i)} ${y(d[field])}`).join(' ');
   add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},series);
   visible.forEach((day,j)=>{
+   if(day.future&&!day[field])return;
    const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3,fill:'#20324c',stroke:color,'stroke-width':2,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
    dot.addEventListener('focus',()=>chartTooltip(i));dot.addEventListener('blur',()=>{$('tip').hidden=true});
    if(i%labelStep===0)text(x(i),y(day[field])+offset,fmt(day[field]),{class:cls+'-point-value',fill:color,'text-anchor':'middle','font-weight':700,stroke:'#20324c','stroke-width':3,'paint-order':'stroke'},series);
   });
  }
  if(trend){
-  add('line',{class:'visible-trend',x1:x(trendFirst),y1:y(fitted[0]),x2:x(trendLast),y2:y(fitted[1]),stroke:'#e7bf84','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
+  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#e7bf84','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
   $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در روز`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو روز لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#ffda92':'#bdcde6'})}
