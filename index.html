@@ -244,6 +244,24 @@ main .chart-navigation button:hover{background:#e8f3ef;color:#136e61}main #chart
 </style>
 
 <style id="dashboard-color-accents">
+main>.plot-comparison{order:5}
+.plot-comparison-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;color:#264d68}
+#plotCompare{background:#e9e0f6;color:#654393;border-color:#cbb6e4;padding:9px 20px;min-height:40px;font-weight:700}
+#plotCompare[aria-expanded="true"]{background:#7450a1;color:#fff}
+.plot-comparison-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.plot-comparison.comparing .plot-comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.plot-comparison .plot-pane{min-width:0;box-shadow:none;border:0;padding:0;border-radius:0;background:transparent}
+.plot-comparison.comparing .plot-pane{padding:16px;border:1px solid #d7e7ec;border-radius:12px;background:#fcfefe;position:relative}
+.plot-comparison.comparing .plot-pane:nth-child(2){border-color:#dfd3ed;background:#fefcff}
+.plot-pane-label{display:none;font-size:12px;font-weight:700;color:#168779;margin-bottom:14px}
+.comparing .plot-pane-label{display:block}.comparing .plot-pane:nth-child(2) .plot-pane-label{color:#7450a1}
+.plot-comparison .plot-pane[hidden]{display:none}
+.plot-comparison .plot-scroll{width:100%;direction:rtl;accent-color:#168b80;height:24px;margin:2px 0 8px}
+.plot-comparison .plot-pane svg{overflow:hidden}.plot-comparison .plot-trend-status{color:#a2701d;background:#fff2d8;padding:4px 9px;border-radius:7px}
+.plot-comparison [data-chart-id="chartDaily"],.plot-comparison [data-chart-id="chartMonthly"],.plot-comparison [data-chart-id="chartQuarterly"]{background:#eae3f7;color:#684994;border-color:#d6c7eb}
+.plot-comparison [data-chart-id="chartAll"],.plot-comparison [data-chart-id="chartApplyMonths"]{background:#168779;color:#fff;border-color:#168779}
+.plot-comparison [data-chart-id][aria-pressed="true"]{background:#7450a1;color:#fff;border-color:#7450a1}
+@media(max-width:1000px){.plot-comparison.comparing .plot-comparison-grid{grid-template-columns:minmax(0,1fr)}}
 /* Coordinated colors on light surfaces; text retains strong contrast. */
 .cards .card:nth-child(1){background:linear-gradient(120deg,#f3fcf9,#dcf5ed);border-color:#b7e5d5}
 .cards .card:nth-child(2){background:linear-gradient(120deg,#faf7ff,#ece3fb);border-color:#d9c7ef}

@@ -368,6 +368,9 @@ for(const id of ['tableStart','tableEnd'])$(id).addEventListener('input',()=>{
  if(tablePayload)try{sessionStorage.setItem('factor-range',JSON.stringify({start:tablePayload.dates[Number(a.value)],end:tablePayload.dates[Number(b.value)],followEnd:b.value===b.max}))}catch{}
 });
 window.addEventListener('resize',updateDualSlider);
+function createIndependentChart(root,prefix=''){
+ const $=id=>document.getElementById(prefix+id);
+ const el=(tag,attrs,parent=$('plot'))=>{const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e};
 const chartView={data:null,rawData:null,aggregation:'daily',start:0,span:10,scale:1,latest:true,initialized:false,frame:0,drag:null,geometry:null};
 function aggregateChart(data,mode){
  if(mode==='daily')return data;
@@ -443,8 +446,8 @@ function paintInteractiveChart(){
  const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
  chartView.geometry={W,H,L,R,T,B,x,y};
  const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#667b91','font-size':11,...attrs},parent);node.textContent=value;return node};
- const defs=add('defs',{}),clip=add('clipPath',{id:'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
- const series=add('g',{'clip-path':'url(#chart-window-clip)'});
+ const defs=add('defs',{}),clip=add('clipPath',{id:prefix+'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
+ const series=add('g',{'clip-path':`url(#${prefix}chart-window-clip)`});
  for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#e4ebf2'});text(R+12,y(value)+4,fmt(value))}
  for(const [value,color,title] of [[data.mean,'#8b74bb','میانگین کل']]){
   add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:color,'stroke-dasharray':'6 6'},series);
@@ -496,14 +499,14 @@ function setupChartNavigation(){
   ['chartMonthly','ماهیانه',()=>chartSetAggregation('monthly')],
   ['chartQuarterly','سه ماهه',()=>chartSetAggregation('quarterly')],
   ['chartAutoY','مقیاس خودکار ارتفاع',()=>{chartView.scale=1;chartSchedule()}]]){
-  const button=document.createElement('button');button.type='button';button.id=id;button.textContent=title;if(['chartDaily','chartMonthly','chartQuarterly'].includes(id))button.setAttribute('aria-pressed',String(id==='chartDaily'));button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
+  const button=document.createElement('button');button.type='button';button.id=prefix+id;button.dataset.chartId=id;button.textContent=title;if(['chartDaily','chartMonthly','chartQuarterly'].includes(id))button.setAttribute('aria-pressed',String(id==='chartDaily'));button.addEventListener('click',()=>{if(chartView.data)action()});toolbar.append(button);
  }
- const status=document.createElement('span');status.id='chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
+ const status=document.createElement('span');status.id=prefix+'chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
  const monthRange=document.createElement('div');monthRange.className='chart-navigation';
- for(const [id,title] of [['chartMonthFrom','از ماه'],['chartMonthTo','تا ماه']]){const label=document.createElement('label');label.textContent=title+' ';const select=document.createElement('select');select.id=id;select.setAttribute('aria-label',title+' شمسی');label.append(select);monthRange.append(label)}
- const apply=document.createElement('button');apply.type='button';apply.id='chartApplyMonths';apply.textContent='نمایش بازه ماه‌ها';apply.addEventListener('click',()=>{if($('chartMonthFrom').value>$('chartMonthTo').value)$('chartMonthTo').value=$('chartMonthFrom').value;chartSelectMonths($('chartMonthFrom').value,$('chartMonthTo').value)});monthRange.append(apply);
- const trendStatus=document.createElement('span');trendStatus.id='chartTrendStatus';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
- const scroll=document.createElement('input');scroll.type='range';scroll.id='chartScroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
+ for(const [id,title] of [['chartMonthFrom','از ماه'],['chartMonthTo','تا ماه']]){const label=document.createElement('label');label.textContent=title+' ';const select=document.createElement('select');select.id=prefix+id;select.setAttribute('aria-label',title+' شمسی');label.append(select);monthRange.append(label)}
+ const apply=document.createElement('button');apply.type='button';apply.id=prefix+'chartApplyMonths';apply.dataset.chartId='chartApplyMonths';apply.textContent='نمایش بازه ماه‌ها';apply.addEventListener('click',()=>{if($('chartMonthFrom').value>$('chartMonthTo').value)$('chartMonthTo').value=$('chartMonthFrom').value;chartSelectMonths($('chartMonthFrom').value,$('chartMonthTo').value)});monthRange.append(apply);
+ const trendStatus=document.createElement('span');trendStatus.id=prefix+'chartTrendStatus';trendStatus.className='note plot-trend-status';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
+ const scroll=document.createElement('input');scroll.type='range';scroll.id=prefix+'chartScroll';scroll.className='plot-scroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
  const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · کشیدن محور راست: تغییر مقیاس ارتفاع · دوبار کلیک: بازنشانی';scroll.after(hint);
  scroll.addEventListener('input',()=>{chartView.start=Number(scroll.value);chartView.latest=chartView.start>=Number(scroll.max)-.01;chartSchedule()});
  svg.style.height='400px';svg.style.direction='ltr';svg.style.touchAction='pan-y';svg.style.userSelect='none';svg.style.cursor='grab';svg.setAttribute('tabindex','0');svg.setAttribute('aria-label','نمودار تعاملی؛ کلیدهای چپ و راست برای پیمایش، مثبت و منفی برای بزرگ‌نمایی');
@@ -526,7 +529,48 @@ function setupChartNavigation(){
  new ResizeObserver(()=>{if(chartView.data)chartSchedule()}).observe(svg);
  const style=document.createElement('style');style.textContent='.chart-navigation{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:18px}.chart-navigation button{padding:7px 10px;border-radius:8px;background:#203752;color:#caeee8;font-size:11px;box-shadow:none}.chart-navigation button:before{display:none}.chart-navigation button:hover{transform:none;background:#30536a}#chartScroll{width:100%;direction:rtl;accent-color:#68dbc6;height:24px;margin:2px 0 8px}#plot{overflow:hidden}';document.head.append(style);
 }
-setupChartNavigation();setupComparison();setupTableSorting();
+ setupChartNavigation();
+ return {chartView,chartTrend,aggregateChart,chartSetAggregation,chartSelectMonths,chartRecentMonths,chartZoom,chartSchedule,paintInteractiveChart,renderInteractiveChart};
+}
+const primaryPlot=document.getElementById('plot').closest('.chart');
+const primaryChart=createIndependentChart(primaryPlot);
+const {chartView,chartTrend,aggregateChart,chartSetAggregation,chartSelectMonths,chartZoom,chartSchedule,paintInteractiveChart}=primaryChart;
+let secondaryChart=null;
+function renderInteractiveChart(data){
+ primaryChart.renderInteractiveChart(data);
+ if(secondaryChart)secondaryChart.renderInteractiveChart(data);
+}
+function setupPlotComparison(){
+ const shell=document.createElement('section');shell.className='chart plot-comparison';
+ const header=document.createElement('div');header.className='plot-comparison-head';
+ const title=document.createElement('strong');title.textContent='روند و مقایسه دوره‌ها';
+ const button=document.createElement('button');button.id='plotCompare';button.type='button';button.textContent='مقایسه';button.setAttribute('aria-expanded','false');button.setAttribute('aria-controls','plotComparisonSecond');
+ header.append(title,button);
+ const grid=document.createElement('div');grid.className='plot-comparison-grid';
+ primaryPlot.before(shell);shell.append(header,grid);grid.append(primaryPlot);primaryPlot.classList.add('plot-pane');
+ const firstLabel=document.createElement('div');firstLabel.className='plot-pane-label';firstLabel.textContent='بازه اول';primaryPlot.prepend(firstLabel);
+ button.addEventListener('click',()=>{
+  const open=button.getAttribute('aria-expanded')!=='true';
+  if(open&&!secondaryChart){
+   const second=document.createElement('div');second.className='chart plot-pane';second.id='plotComparisonSecond';
+   const caption=document.createElement('div');caption.className='plot-pane-label';caption.textContent='بازه دوم';
+   const top=primaryPlot.querySelector('.chart-top').cloneNode(true);
+   const svg=document.createElementNS(ns,'svg');svg.id='compare-plot';svg.setAttribute('role','img');
+   const tip=document.createElement('div');tip.id='compare-tip';tip.className='tip';tip.hidden=true;
+   second.append(caption,top,svg,tip);grid.append(second);
+   secondaryChart=createIndependentChart(second,'compare-');
+   secondaryChart.renderInteractiveChart(primaryChart.chartView.rawData);secondaryChart.chartSetAggregation(primaryChart.chartView.aggregation);
+  }
+  if(secondaryChart){
+   const second=document.getElementById('plotComparisonSecond');second.hidden=!open;
+  }
+  shell.classList.toggle('comparing',open);button.setAttribute('aria-expanded',String(open));button.textContent=open?'بستن مقایسه':'مقایسه';
+  primaryChart.chartSchedule();if(open)secondaryChart.chartSchedule();
+ });
+}
+setupPlotComparison();
+setupComparison();setupTableSorting();
+
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
 if(publicSnapshotMode){
