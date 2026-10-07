@@ -23,5 +23,6 @@
   month.value=[...month.options].some(o=>o.value===previous)?previous:month.options[month.options.length-1]?.value;
   option(inventory,'','همه شعب');table.inventories.forEach(m=>option(inventory,m.id,`${m.name||m.id} (${m.id})`));inventory.value=[...inventory.options].some(o=>o.value===branch)?branch:'';render();
  };
- month.addEventListener('change',render);inventory.addEventListener('change',render);
+ month.addEventListener('change',()=>{render();window.monitorChartMonth?.(month.value)});
+ inventory.addEventListener('change',()=>{render();window.monitorChartInventory?.(inventory.value)});
 })();

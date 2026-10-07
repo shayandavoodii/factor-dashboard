@@ -385,6 +385,8 @@ function chartSelectMonths(from,to=from){
 function chartRecentMonths(count){
  const months=[...new Set(chartView.data.days.map(d=>chartMonthKey(d.persian)))];chartSelectMonths(months[Math.max(0,months.length-count)],months.at(-1));
 }
+window.monitorChartMonth=month=>chartSelectMonths(month);
+window.monitorChartInventory=id=>{viewFilter=id?{mode:'inventory',value:id}:{mode:'all',value:''};renderSnapshotView()};
 function updateChartMonths(){
  for(const id of ['chartMonthFrom','chartMonthTo']){const select=$(id),previous=select.value;select.replaceChildren();
   for(const month of new Set(chartView.data.days.map(d=>chartMonthKey(d.persian)))){const option=document.createElement('option');option.value=month;option.textContent=`${fa(month.slice(0,4))}/${fa(month.slice(4))}`;select.append(option)}
