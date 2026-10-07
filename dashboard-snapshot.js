@@ -404,7 +404,25 @@ function chartSelectMonths(from,to=from){
  const first=days.findIndex(d=>(d.endMonth||chartMonthKey(d.persian))>=from),last=days.findLastIndex(d=>(d.startMonth||chartMonthKey(d.persian))<=to);
  if(first<0||last<first)return;
  $('chartMonthFrom').value=from;$('chartMonthTo').value=to;$('chartMonthFrom').excelUpdate?.();$('chartMonthTo').excelUpdate?.();
+ updateChartDays('From',false);updateChartDays('To',false);
  chartView.start=first;chartView.span=last-first+1;chartView.scale=1;chartView.latest=last===days.length-1;chartView.initialized=true;chartClamp();chartSchedule();
+}
+function chartDateKey(value){return String(value).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g,'')}
+function updateChartDays(side,preserve=true){
+ const month=$('chartMonth'+side).value,select=$('chartDay'+side),previous=select.value;
+ const days=[...new Set((chartView.rawData?.days||[]).filter(day=>chartMonthKey(day.persian)===month).map(day=>chartDateKey(day.persian).slice(6,8)))];
+ select.replaceChildren();for(const day of days){const option=document.createElement('option');option.value=day;option.textContent=fa(day);select.append(option)}
+ select.value=preserve&&days.includes(previous)?previous:days[side==='From'?0:days.length-1]||'';select.excelUpdate?.();
+}
+function chartSelectDates(){
+ let from=$('chartMonthFrom').value+$('chartDayFrom').value,to=$('chartMonthTo').value+$('chartDayTo').value;
+ if(from>to){$('chartMonthTo').value=$('chartMonthFrom').value;updateChartDays('To');$('chartDayTo').value=$('chartDayFrom').value;to=from}
+ const days=chartView.data?.days;if(!days?.length)return;
+ // Whole aggregate buckets remain whole when a day boundary overlaps them.
+ const first=days.findIndex(day=>chartDateKey(day.periodEnd||day.persian)>=from),last=days.findLastIndex(day=>chartDateKey(day.periodStart||day.persian)<=to);
+ if(first<0||last<first)return;
+ chartView.start=first;chartView.span=last-first+1;chartView.scale=1;chartView.latest=last===days.length-1;chartView.initialized=true;chartClamp();chartSchedule();
+ for(const id of ['chartMonthFrom','chartDayFrom','chartMonthTo','chartDayTo'])$(id).excelUpdate?.();
 }
 function chartRecentMonths(count){
  const months=[...new Set(chartView.data.days.filter(d=>!d.future).map(d=>chartMonthKey(d.persian)))];if(months.length)chartSelectMonths(months[Math.max(0,months.length-count)],months.at(-1));
@@ -414,6 +432,7 @@ function updateChartMonths(){
   for(const month of new Set(chartView.rawData.days.map(d=>chartMonthKey(d.persian)))){const option=document.createElement('option');option.value=month;option.textContent=`${fa(month.slice(0,4))}/${fa(month.slice(4))}`;select.append(option)}
   select.value=[...select.options].some(o=>o.value===previous)?previous:select.options[id==='chartMonthFrom'?0:select.options.length-1]?.value;
  }
+ updateChartDays('From');updateChartDays('To');
 }
 function chartClamp(){
  const n=chartView.data?.days.length||1;chartView.span=Math.max(1,Math.min(n,chartView.span));chartView.start=Math.max(0,Math.min(n-chartView.span,chartView.start));
@@ -510,8 +529,12 @@ function setupChartNavigation(){
  }
  const status=document.createElement('span');status.id=prefix+'chartWindow';status.className='note';toolbar.append(status);svg.before(toolbar);
  const monthRange=document.createElement('div');monthRange.className='chart-navigation';
- for(const [id,title] of [['chartMonthFrom','از ماه'],['chartMonthTo','تا ماه']]){const label=document.createElement('label');label.textContent=title+' ';const select=document.createElement('select');select.id=prefix+id;select.setAttribute('aria-label',title+' شمسی');label.append(select);monthRange.append(label)}
- const apply=document.createElement('button');apply.type='button';apply.id=prefix+'chartApplyMonths';apply.dataset.chartId='chartApplyMonths';apply.textContent='نمایش بازه ماه‌ها';apply.addEventListener('click',()=>{if($('chartMonthFrom').value>$('chartMonthTo').value)$('chartMonthTo').value=$('chartMonthFrom').value;chartSelectMonths($('chartMonthFrom').value,$('chartMonthTo').value)});monthRange.append(apply);
+ for(const [side,title] of [['From','از'],['To','تا']]){
+  const group=document.createElement('div');group.className='plot-date-boundary';const heading=document.createElement('strong');heading.textContent=title;group.append(heading);
+  for(const [kind,name] of [['Month','ماه'],['Day','روز']]){const label=document.createElement('label');label.textContent=name+' ';const select=document.createElement('select');select.id=prefix+'chart'+kind+side;select.setAttribute('aria-label',title+' '+name+' شمسی');if(kind==='Month')select.addEventListener('change',()=>updateChartDays(side,false));label.append(select);group.append(label)}
+  monthRange.append(group);
+ }
+ const apply=document.createElement('button');apply.type='button';apply.id=prefix+'chartApplyMonths';apply.dataset.chartId='chartApplyMonths';apply.textContent='نمایش بازه';apply.addEventListener('click',chartSelectDates);monthRange.append(apply);
  const trendStatus=document.createElement('span');trendStatus.id=prefix+'chartTrendStatus';trendStatus.className='note plot-trend-status';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
  const scroll=document.createElement('input');scroll.type='range';scroll.id=prefix+'chartScroll';scroll.className='plot-scroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
  const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · دوبار کلیک: بازنشانی';scroll.after(hint);
