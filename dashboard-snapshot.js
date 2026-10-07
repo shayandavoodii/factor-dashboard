@@ -157,7 +157,7 @@ function renderComparedTable(a,b){
   [row.name||row.id,row.state||'—',row.manager||'—',row.supervisor||'—'].forEach((text,i)=>{const cell=document.createElement(i===0?'th':'td');if(i===0)cell.scope='row';cell.textContent=text;tr.append(cell)});
   for(const key of metricOrder){
    for(const prefix of ['','second_','growth_']){
-    const td=document.createElement('td'),value=document.createElement('b'),n=row[prefix+key];td.dataset.metric=prefix+key;
+    const td=document.createElement('td'),value=document.createElement('b'),n=row[prefix+key];td.dataset.metric=prefix+key;td.dataset.key=key;
     if(prefix==='growth_'){
      value.className='growth-value '+(n===null||n===0?'growth-neutral':n>0?'growth-positive':'growth-negative');
      value.textContent=n===null?'—':(n>0?'+':'')+percentFormatter.format(n)+'٪';
@@ -167,7 +167,7 @@ function renderComparedTable(a,b){
      value.className='table-total';value.textContent=fmt(n);td.append(value);if(!prefix)td.className='metric-first';
     }else{
      const total=row[prefix+'total'],share=total?100*n/total:0,cell=document.createElement('div'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');
-     cell.className='range-cell';cell.style.setProperty('--bucket',({low:'#88baff',mid:'#7ee2c7',high:'#b7a0ff',veryhigh:'#ffcf88',total:'#83e7d3'})[key]);
+     cell.className='range-cell';cell.style.setProperty('--bucket',({low:'#5b9ed7',mid:'#3aaa88',high:'#9b78c8',veryhigh:'#e8ae50',total:'#168779'})[key]);
      value.className=key==='total'?'table-total':'comparison-count';value.textContent=fmt(n);percent.textContent=fmt(share)+'٪';percent.title='درصد از کل فاکتورهای همین شعبه در همین بازه';bar.style.width=`${Math.max(0,Math.min(100,share))}%`;track.setAttribute('aria-hidden','true');track.append(bar);cell.append(value,percent,track);td.append(cell);if(!prefix)td.className='metric-first';
     }
     tr.append(td);
