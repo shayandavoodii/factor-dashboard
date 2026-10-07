@@ -393,6 +393,7 @@ function updateChartMonths(){
 }
 function chartClamp(){
  const n=chartView.data?.days.length||1;chartView.span=Math.max(1,Math.min(n,chartView.span));chartView.start=Math.max(0,Math.min(n-chartView.span,chartView.start));
+ if(chartView.span===1)chartView.start=Math.round(chartView.start);
  chartView.scale=Math.max(.15,Math.min(20,chartView.scale));
 }
 function chartSchedule(){cancelAnimationFrame(chartView.frame);chartView.frame=requestAnimationFrame(()=>paintInteractiveChart())}
