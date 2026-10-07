@@ -582,6 +582,4 @@ setupComparison();setupTableSorting();
 
 setupInventoryMultiselect();
 restoreBrowserSnapshot();refresh();
-setInterval(()=>refresh(true),publicSnapshotMode?60000:15000);else{
- setInterval(()=>refresh(true),15000);
-}
+setInterval(()=>refresh(true),publicSnapshotMode?60000:15000);
