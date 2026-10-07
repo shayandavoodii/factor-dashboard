@@ -457,6 +457,9 @@ function paintInteractiveChart(){
  chartView.geometry={W,H,L,R,T,B,x,y};
  const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#667b91','font-size':11,...attrs},parent);node.textContent=value;return node};
  const defs=add('defs',{}),clip=add('clipPath',{id:prefix+'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
+ const gradient=add('linearGradient',{id:prefix+'chart-area-color',x1:'0',y1:'0',x2:'0',y2:'1'},defs);
+ add('stop',{offset:'0%','stop-color':'#3189d4','stop-opacity':'.28'},gradient);
+ add('stop',{offset:'100%','stop-color':'#3189d4','stop-opacity':'.02'},gradient);
  const series=add('g',{'clip-path':`url(#${prefix}chart-window-clip)`});
  for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#e4ebf2'});text(R+12,y(value)+4,fmt(value))}
  for(const [value,color,title] of [[data.mean,'#8b74bb','میانگین کل']]){
@@ -464,19 +467,21 @@ function paintInteractiveChart(){
   text(L+8,Math.max(T+12,Math.min(B-5,y(value)-7)),`${title}: ${fmt(value)}`,{fill:color,'font-size':10},series);
  }
  const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
- for(const [field,color,cls,offset] of [['count','#168b80','total',-13]]){
+ for(const [field,color,cls,offset] of [['count','#287ec0','total',-13]]){
   const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>!d.future||d[field]>0);
   const path=points.map(({d,i},j)=>`${j?'L':'M'} ${x(i)} ${y(d[field])}`).join(' ');
-  add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},series);
+  if(points.length>1)add('path',{class:'total-area',d:`${path} L ${x(points.at(-1).i)} ${B} L ${x(points[0].i)} ${B} Z`,fill:`url(#${prefix}chart-area-color)`,'pointer-events':'none'},series);
+  add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':3,'stroke-linejoin':'round'},series);
   visible.forEach((day,j)=>{
    if(day.future&&!day[field])return;
-   const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3,fill:'#ffffff',stroke:color,'stroke-width':2,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
+   const pointColor=day[field]>=data.mean?'#168b70':'#d58b22';
+   const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3.5,fill:pointColor,stroke:'#ffffff','stroke-width':1.5,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
    dot.addEventListener('focus',()=>chartTooltip(i));dot.addEventListener('blur',()=>{$('tip').hidden=true});
    if(i%labelStep===0)text(x(i),y(day[field])+offset,fmt(day[field]),{class:cls+'-point-value',fill:color,'text-anchor':'middle','font-weight':700,stroke:'#ffffff','stroke-width':3,'paint-order':'stroke'},series);
   });
  }
  if(trend){
-  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#b17b24','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
+  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#e27836','stroke-width':2.8,'stroke-dasharray':'7 6'},series);
   $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
