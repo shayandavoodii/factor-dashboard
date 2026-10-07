@@ -17,8 +17,7 @@
 :root,body,button,input,select,textarea,svg text{font-family:'Vazir Dashboard',Tahoma,'Segoe UI',sans-serif}h1,.value,button,.eyebrow{font-weight:700}.chart-title{font-weight:500}
 </style>
 <main><div class="eyebrow">سال ۱۴۰۵ · پایش روزانه به تفکیک ماه</div><header><h1>پایش تعداد فاکتورها</h1><button id="refresh"><span class="icon">↻</span><span id="buttonText">بروزرسانی داده‌ها</span></button></header>
-<div class="automation"><div class="auto-control"><button id="autoFetch" class="auto-toggle" type="button" role="switch" aria-checked="false" aria-label="دریافت خودکار داده‌ها" disabled><span class="toggle-knob"></span></button><div><strong id="autoHeading">دریافت خودکار</strong><div class="interval-picker" role="group" aria-label="فاصله دریافت خودکار"><span>هر</span><button type="button" data-interval="5" aria-pressed="false" disabled>۵</button><button type="button" data-interval="10" aria-pressed="false" disabled>۱۰</button><button type="button" data-interval="15" aria-pressed="false" disabled>۱۵</button><span>دقیقه</span></div><div class="note" id="autoLabel">در حال دریافت وضعیت…</div></div></div><div class="auto-info"><span id="fetchState" role="status" aria-live="polite">در حال اتصال…</span><span id="cacheAge"></span><span id="nextFetch"></span></div></div>
-<section class="inventory-filter" aria-labelledby="inventoryFilterTitle"><div class="filter-head"><div><strong id="inventoryFilterTitle">شعب منتخب</strong><span id="activeInventory">همه شعب</span></div><button id="locationsToggle" class="locations-toggle" type="button" aria-expanded="false">انتخاب یک شعبه <span>⌄</span></button></div><div id="supervisorButtons" class="supervisor-buttons"></div><div id="locationPanel" class="location-panel" hidden><label for="locationSearch">جست‌وجوی نام یا کد شعبه</label><input id="locationSearch" type="search" autocomplete="off" placeholder="نام یا کد شعبه…"><div id="locationButtons" class="location-buttons"></div></div><div id="filterStatus" class="filter-status" role="status" aria-live="polite"></div></section>
+
 <div class="sub"><span id="window">در حال دریافت داده‌های سال ۱۴۰۵…</span></div>
 <div class="cards">
 <div class="card"><div class="label"><b>امروز</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="today">—</div><div class="note" id="todayNote">در انتظار دریافت داده‌ها</div></div></div></div>
@@ -26,7 +25,10 @@
 <div class="card"><div class="label"><b>امروز در مقایسه با میانگین دوره</b></div><div class="card-split"><div class="metric-half total-metric"><div class="metric-caption">کل فاکتورها</div><div class="value" id="delta">—</div><div class="note" id="deltaNote">مقایسه در بازه زمانی یکسان</div></div></div></div>
 </div>
 
+<section class="inventory-filter" aria-labelledby="inventoryFilterTitle"><div class="filter-head"><div><strong id="inventoryFilterTitle">شعب منتخب</strong><span id="activeInventory">همه شعب</span></div><button id="locationsToggle" class="locations-toggle" type="button" aria-expanded="false">انتخاب یک شعبه <span>⌄</span></button></div><div id="supervisorButtons" class="supervisor-buttons"></div><div id="locationPanel" class="location-panel" hidden><label for="locationSearch">جست‌وجوی نام یا کد شعبه</label><input id="locationSearch" type="search" autocomplete="off" placeholder="نام یا کد شعبه…"><div id="locationButtons" class="location-buttons"></div></div><div id="filterStatus" class="filter-status" role="status" aria-live="polite"></div></section>
 <section class="chart"><div class="chart-top"><div class="chart-title">روند روزانه کل فاکتورها</div><div class="legend"><span>کل فاکتورها</span><span class="total-mean-legend">میانگین کل دوره</span></div></div><svg id="plot" viewBox="0 0 1100 470" role="img" aria-label="روند روزانه فاکتورها در سال ۱۴۰۵"><text x="550" y="210" text-anchor="middle" class="empty">در حال دریافت تعداد فاکتورها…</text></svg><div id="tip" class="tip" hidden></div></section>
+<div class="automation"><div class="auto-control"><button id="autoFetch" class="auto-toggle" type="button" role="switch" aria-checked="false" aria-label="دریافت خودکار داده‌ها" disabled><span class="toggle-knob"></span></button><div><strong id="autoHeading">دریافت خودکار</strong><div class="interval-picker" role="group" aria-label="فاصله دریافت خودکار"><span>هر</span><button type="button" data-interval="5" aria-pressed="false" disabled>۵</button><button type="button" data-interval="10" aria-pressed="false" disabled>۱۰</button><button type="button" data-interval="15" aria-pressed="false" disabled>۱۵</button><span>دقیقه</span></div><div class="note" id="autoLabel">در حال دریافت وضعیت…</div></div></div><div class="auto-info"><span id="fetchState" role="status" aria-live="polite">در حال اتصال…</span><span id="cacheAge"></span><span id="nextFetch"></span></div></div>
+
 <footer><span>FamilyDWH · تمام فاکتورها در سال ۱۴۰۵ · آرشیو ماهانه</span><span id="status" role="status" aria-live="polite">در حال اتصال به سرویس داده…</span></footer></main>
 <style>
 .legend span.total-mean-legend:before{border-top:2px dashed #d1a4ff}
@@ -224,3 +226,66 @@ function renderInventoryTable(d){const fragment=document.createDocumentFragment(
 </script>
 <script src="dashboard-snapshot.js"></script></html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
+
+<style id="light-dashboard">
+:root{color-scheme:light;--ink:#172b45;--muted:#64748b;--line:#e3eaf1;--accent:#147d78;--surface:#fff;--shadow:0 8px 28px #19324d07}
+body{background:#f4f7fa;color:var(--ink);margin:0}
+main{max-width:1440px;margin:0 auto;padding:36px 40px 0;display:flex;flex-direction:column;gap:20px}
+main>.eyebrow{order:0;margin:0;color:var(--accent);font-size:11px;letter-spacing:0}
+main>header{order:1;margin:-12px 0 0;padding-bottom:18px;border-bottom:1px solid var(--line);align-items:center}
+h1{font-size:clamp(25px,2.5vw,34px);color:var(--ink);margin:0;line-height:1.7}
+main>.sub{order:2;margin:-12px 0 0;color:var(--muted);font-size:11px}
+main>.cards{order:3;margin:0;gap:18px}
+main>.inventory-filter{order:4;margin:0}
+main>.chart{order:5}
+main>.automation{order:6;margin:0}
+main>footer{order:7;margin:0;color:var(--muted);padding:4px 0 20px}
+.card,.chart,.inventory-filter,.automation,.inventory-table{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px}
+.cards .card{padding:24px 26px;border-top:0;position:relative;overflow:hidden;background:#fff}
+.cards .card:after{content:'';position:absolute;top:24px;right:0;width:4px;height:34px;background:#168b80;border-radius:4px 0 0 4px}
+.cards .card:nth-child(2):after{background:#7660b6}.cards .card:nth-child(3):after{background:#bc8428}
+.cards .card:nth-child(1){background:linear-gradient(120deg,#fff 65%,#f0faf7)}
+.cards .card:nth-child(2){background:linear-gradient(120deg,#fff 65%,#f7f4fc)}
+.cards .card:nth-child(3){background:linear-gradient(120deg,#fff 65%,#fffbf2)}
+.cards .card .value{font-size:36px;color:var(--ink);font-variant-numeric:tabular-nums;margin:8px 0 12px}
+.cards .card:nth-child(1) .value{color:#137c70}.cards .card:nth-child(2) .value{color:#69549e}.cards .card:nth-child(3) .value{color:#a37421}
+.cards .label{color:var(--ink);font-size:13px}.card-split{margin-top:12px;display:block}.metric-half{padding:0}.metric-caption{color:var(--muted);font-size:11px}
+.note,.card-split .note{color:var(--muted);line-height:1.9}.cards .card>.label{min-height:0}
+button{background:#edf3f7;color:#29425b;border:1px solid #dce6ee;border-radius:10px;box-shadow:none;font-weight:500}
+button:before{display:none}button:hover{transform:none;background:#e3edf3;box-shadow:none}
+#refresh{background:#17344e;color:#fff;border-color:#17344e;padding:11px 20px;min-height:44px}
+#refresh:hover{background:#24516c}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #168b80;outline-offset:3px}
+.inventory-filter{padding:20px 24px}.filter-head strong{color:var(--ink);font-size:14px}#activeInventory{color:#147d78;background:#edf8f5;border:1px solid #d6ece5;padding:4px 10px;border-radius:7px}
+.filter-head{align-items:center}.locations-toggle{background:#f7f9fc;color:#465b72;border-color:var(--line)}
+.supervisor-buttons,.location-buttons{gap:8px}.filter-chip{color:#52657b;background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+.filter-chip:hover{transform:none;background:#edf5f5;border-color:#a8d3cb;box-shadow:none}
+.filter-chip[aria-pressed="true"],.filter-chip.inventory[aria-pressed="true"]{color:#11675f;background:#e7f5ef;border-color:#a8d6c5;box-shadow:none}
+.location-panel{background:#f7f9fb;border-color:var(--line)}.location-panel label{color:var(--muted)}.location-panel input{background:#fff;color:var(--ink);border-color:#d7e1eb}
+.filter-status{color:#8f6721}.inventory-multi-controls label{color:#53647a}.inventory-multi-controls button{color:#37546d;background:#f5f8fb;border-color:var(--line)}
+.automation{padding:16px 22px;background:#fafdff;gap:14px}.auto-control strong{color:#34516a;font-size:12px}.auto-info{color:#64748b;font-size:11px}.auto-info #fetchState{color:#147d78}.auto-info #fetchState.problem{color:#ad4c37}
+.auto-toggle{background:#c8d3df;border-color:#bdcbd9}.auto-toggle[aria-checked="true"]{background:#19867b;box-shadow:none}.auto-toggle:hover{box-shadow:none}
+.interval-picker{background:#f1f5f9;border-color:#dde6ed;box-shadow:none}.interval-picker>span{color:#62768d}.interval-picker button{color:#60758b}.interval-picker button[aria-pressed="true"]{background:#fff;color:#13796e;border-color:#c9ded7;box-shadow:0 2px 5px #17344e0a}
+.chart{padding:26px 28px}.chart-title{font-size:16px;color:var(--ink)}.legend{color:#6b7d91;font-size:11px;gap:18px}.legend span:before{border-color:#168b80}.legend span.total-mean-legend:before{border-color:#8b74bb}
+main .chart-navigation{margin-top:16px;padding:10px 12px;background:#f7f9fc;border:1px solid var(--line);border-radius:11px;gap:7px}
+main .chart-navigation button{background:#fff;color:#405871;border:1px solid #dce5ed;border-radius:7px;padding:6px 12px;box-shadow:none}
+main .chart-navigation select{background:#fff;color:#29425b;border:1px solid #dce5ed;border-radius:7px;padding:5px 10px;font-family:inherit}
+main .chart-navigation label{color:#60748a}#chartWindow{margin-inline-start:auto;color:#60748a}#chartTrendStatus{color:#a2701d!important}
+#chartScroll{accent-color:#168b80}#plot{margin-top:16px}.tip{background:#fffffff7;color:var(--ink);border:1px solid #cededb;box-shadow:0 10px 30px #19324d1a;border-radius:12px}.tip strong{color:#13796e}.empty{fill:#667a91}
+.inventory-table{width:calc(100% - 80px);max-width:1360px;margin:0 auto 36px;padding:26px 28px;border-top:1px solid var(--line)}
+.inventory-table h2{color:var(--ink);font-size:19px}.inventory-table .eyebrow{color:#147d78}.inventory-table #tableRange{background:#f1f7f5;color:#236c62;border:1px solid #deebe6;box-shadow:none;border-radius:9px}
+.inventory-table .table-period{background:#f8fafc;padding:14px 18px;border:1px solid var(--line);border-radius:12px;margin-top:18px}
+.inventory-table .period-span,.inventory-table .period-labels,.inventory-table .comparison-title{color:#50677d}.inventory-table .period-labels output{color:#185b63}
+.dual-slider:before{background:#dce5ed}.dual-slider:after{background:#168b80;box-shadow:none}.dual-slider input::-webkit-slider-thumb{background:#fff;border-color:#168b80;box-shadow:0 0 0 4px #168b8012}.dual-slider input::-moz-range-thumb{background:#fff;border-color:#168b80;box-shadow:none}
+.inventory-table .table-scroll{border-color:var(--line);border-radius:12px;scrollbar-color:#bccbd6 #f4f7fa}
+.inventory-table table{color:#334b63}.inventory-table thead,.inventory-table thead th,.inventory-table thead th:first-child{background:#edf3f7;color:#375169;border-color:#dfe7ef}
+.inventory-table tbody td,.inventory-table tbody th{border-color:#edf1f5;background:#fff}.inventory-table tbody tr:nth-child(even) td,.inventory-table tbody tr:nth-child(even) th:first-child{background:#f8fafc}
+.inventory-table tbody th:first-child{background:#fff;color:#28455f;box-shadow:-3px 0 8px #19324d05}
+.inventory-table tbody tr:hover{transform:none!important;box-shadow:none!important;background:#edf7f3}.inventory-table tbody tr:hover td,.inventory-table tbody tr:hover th:first-child{background:#edf7f3}
+.inventory-table .range-cell b{color:#2d526d}.inventory-table .range-cell small{color:#72859a}.inventory-table .range-cell i{background:#e9eff4}.inventory-table .range-cell em{background:#7bb4af}
+.inventory-table .table-total,.inventory-table tbody tr:hover .table-total{color:#136e61;background:#eaf5f0;border:1px solid #d5e9df;box-shadow:none}
+.inventory-table .table-empty{color:#74869a}.table-sort-controls label{color:#566d83}.table-sort-controls input,.inventory-multi-controls input{accent-color:#168b80}.inventory-table .table-sort:hover,.inventory-table .table-sort[aria-pressed="true"]{color:#13796e;background:#e8f3ef;border-color:#bddbd0}
+.inventory-table .growth-positive{color:#15784e;background:#e9f6ee}.inventory-table .growth-negative{color:#b24752;background:#fceef0}.inventory-table .growth-neutral{color:#64748b;background:#f1f5f9}.inventory-table .comparison-table th[data-key^="growth"]{color:#69569b}
+.error{color:#b3424c!important}
+@media(max-width:900px){main{padding:24px 24px 0}.inventory-table{width:calc(100% - 48px)}.cards .card{padding:20px}.cards .card .value{font-size:30px}}
+@media(max-width:650px){main{padding:20px 14px 0;gap:16px}main>header{align-items:stretch;gap:14px}#refresh{align-self:flex-start}.cards{grid-template-columns:1fr!important;gap:12px}main .cards .card{padding:18px 22px}.cards .card .value{font-size:30px;margin:5px 0}.inventory-filter,.chart{padding:18px}.filter-head{align-items:stretch}.legend{gap:10px}.chart-title{font-size:14px}.inventory-table{width:calc(100% - 28px);padding:18px;margin-bottom:24px}.inventory-table h2{font-size:17px}.automation{padding:16px}.auto-info{gap:5px 12px}#chartWindow{flex-basis:100%;margin:4px 0 0}.chart-navigation button{font-size:11px}main>footer{padding-bottom:10px}}
+</style>

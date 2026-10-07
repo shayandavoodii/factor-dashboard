@@ -423,34 +423,34 @@ function paintInteractiveChart(){
  const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,...fitted,...visible.map(d=>d.count))*1.18*chartView.scale;
  const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
  chartView.geometry={W,H,L,R,T,B,x,y};
- const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#bdcde6','font-size':11,...attrs},parent);node.textContent=value;return node};
+ const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#667b91','font-size':11,...attrs},parent);node.textContent=value;return node};
  const defs=add('defs',{}),clip=add('clipPath',{id:'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
  const series=add('g',{'clip-path':'url(#chart-window-clip)'});
- for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#ffffff18'});text(R+12,y(value)+4,fmt(value))}
- for(const [value,color,title] of [[data.mean,'#d1a4ff','میانگین کل']]){
+ for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#e4ebf2'});text(R+12,y(value)+4,fmt(value))}
+ for(const [value,color,title] of [[data.mean,'#8b74bb','میانگین کل']]){
   add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:color,'stroke-dasharray':'6 6'},series);
   text(L+8,Math.max(T+12,Math.min(B-5,y(value)-7)),`${title}: ${fmt(value)}`,{fill:color,'font-size':10},series);
  }
  const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
- for(const [field,color,cls,offset] of [['count','#82ffe3','total',-13]]){
+ for(const [field,color,cls,offset] of [['count','#168b80','total',-13]]){
   const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>!d.future||d[field]>0);
   const path=points.map(({d,i},j)=>`${j?'L':'M'} ${x(i)} ${y(d[field])}`).join(' ');
   add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},series);
   visible.forEach((day,j)=>{
    if(day.future&&!day[field])return;
-   const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3,fill:'#20324c',stroke:color,'stroke-width':2,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
+   const i=first+j,dot=add('circle',{class:cls+'-point',cx:x(i),cy:y(day[field]),r:day.today?5:3,fill:'#ffffff',stroke:color,'stroke-width':2,tabindex:(x(i)>=L&&x(i)<=R)?0:-1,role:'img','aria-label':`${day.persian}: ${fmt(day[field])}`},series);
    dot.addEventListener('focus',()=>chartTooltip(i));dot.addEventListener('blur',()=>{$('tip').hidden=true});
-   if(i%labelStep===0)text(x(i),y(day[field])+offset,fmt(day[field]),{class:cls+'-point-value',fill:color,'text-anchor':'middle','font-weight':700,stroke:'#20324c','stroke-width':3,'paint-order':'stroke'},series);
+   if(i%labelStep===0)text(x(i),y(day[field])+offset,fmt(day[field]),{class:cls+'-point-value',fill:color,'text-anchor':'middle','font-weight':700,stroke:'#ffffff','stroke-width':3,'paint-order':'stroke'},series);
   });
  }
  if(trend){
-  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#e7bf84','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
+  add('line',{class:'visible-trend',x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),stroke:'#b17b24','stroke-width':2.4,'stroke-dasharray':'7 6'},series);
   $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} فاکتور در روز`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو روز لازم است.';
- for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#ffda92':'#bdcde6'})}
+ for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
  const axisX=add('rect',{x:L,y:B+2,width:R-L,height:H-B-2,fill:'transparent',class:'chart-x-axis'});axisX.style.cursor='ew-resize';
  const axisY=add('rect',{x:R+1,y:T,width:W-R-1,height:B-T,fill:'transparent',class:'chart-y-axis'});axisY.style.cursor='ns-resize';
- text((L+R)/2,H-10,'↔ برای تغییر مقیاس زمان، محور را بکشید',{'text-anchor':'middle','font-size':10,fill:'#879bb7','pointer-events':'none'});
+ text((L+R)/2,H-10,'↔ برای تغییر مقیاس زمان، محور را بکشید',{'text-anchor':'middle','font-size':10,fill:'#71859a','pointer-events':'none'});
  const scroll=$('chartScroll');scroll.max=Math.max(0,data.days.length-chartView.span);scroll.value=chartView.start;scroll.disabled=Number(scroll.max)===0;
  $('chartWindow').textContent=`${data.days[Math.ceil(chartView.start)].persian} تا ${data.days[Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1))].persian}`;
  scroll.setAttribute('aria-valuetext',$('chartWindow').textContent);
@@ -483,7 +483,7 @@ function setupChartNavigation(){
  const monthRange=document.createElement('div');monthRange.className='chart-navigation';
  for(const [id,title] of [['chartMonthFrom','از ماه'],['chartMonthTo','تا ماه']]){const label=document.createElement('label');label.textContent=title+' ';const select=document.createElement('select');select.id=id;select.setAttribute('aria-label',title+' شمسی');label.append(select);monthRange.append(label)}
  const apply=document.createElement('button');apply.type='button';apply.id='chartApplyMonths';apply.textContent='نمایش بازه ماه‌ها';apply.addEventListener('click',()=>{if($('chartMonthFrom').value>$('chartMonthTo').value)$('chartMonthTo').value=$('chartMonthFrom').value;chartSelectMonths($('chartMonthFrom').value,$('chartMonthTo').value)});monthRange.append(apply);
- const trendStatus=document.createElement('span');trendStatus.id='chartTrendStatus';trendStatus.className='note';trendStatus.style.color='#e7bf84';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
+ const trendStatus=document.createElement('span');trendStatus.id='chartTrendStatus';trendStatus.className='note';trendStatus.style.color='#b17b24';trendStatus.setAttribute('role','status');monthRange.append(trendStatus);toolbar.after(monthRange);
  const scroll=document.createElement('input');scroll.type='range';scroll.id='chartScroll';scroll.min=scroll.max=scroll.value='0';scroll.step='.1';scroll.disabled=true;scroll.setAttribute('aria-label','پیمایش تاریخ نمودار');svg.after(scroll);
  const hint=document.createElement('div');hint.className='note';hint.textContent='کشیدن نمودار: جابه‌جایی روزها · چرخ ماوس: بزرگ‌نمایی · کشیدن محور راست: تغییر مقیاس ارتفاع · دوبار کلیک: بازنشانی';scroll.after(hint);
  scroll.addEventListener('input',()=>{chartView.start=Number(scroll.value);chartView.latest=chartView.start>=Number(scroll.max)-.01;chartSchedule()});
