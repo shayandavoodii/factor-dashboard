@@ -145,6 +145,12 @@ function renderInventoryTable(d){const fragment=document.createDocumentFragment(
 function excelMenu(host,{title,items,selected,multiple=true,apply}){
  host.classList.add('excel-filter');
  const trigger=document.createElement('button');trigger.type='button';trigger.className='excel-trigger';trigger.setAttribute('aria-expanded','false');
+ trigger.setAttribute('aria-label',title);
+ const selectedText=document.createElement('span');selectedText.className='excel-selected';
+ const arrow=document.createElement('span');arrow.className='excel-arrow';arrow.setAttribute('aria-hidden','true');
+ arrow.innerHTML='<svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0h8L4 5z" fill="currentColor"/></svg>';
+ trigger.append(selectedText,arrow);
+ if(!host.closest('label')){const caption=document.createElement('label');caption.className='excel-caption';caption.textContent=title;host.append(caption)}
  const panel=document.createElement('div');panel.className='excel-menu';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label',title);
  const search=document.createElement('input');search.type='search';search.placeholder='جست‌وجو…';search.setAttribute('aria-label','جست‌وجو در '+title);
  const list=document.createElement('div');list.className='excel-options';
@@ -153,7 +159,10 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
  panel.append(search,all,list,actions);host.append(trigger,panel);
  let draft=new Set(),opener=null;
  const entries=()=>items(),visible=()=>entries().filter(item=>(item.text+' '+item.id).toLocaleLowerCase('fa').includes(search.value.trim().toLocaleLowerCase('fa')));
- function updateLabel(){const values=selected(),total=entries().length;trigger.textContent=title+' · '+(!multiple?(entries().find(item=>item.id===values[0])?.text||'—'):values.length===total?'همه':values.length?fmt(values.length)+' انتخاب':'بدون انتخاب')+' ⌄'}
+ function updateLabel(){const values=selected(),options=entries(),names=options.filter(item=>values.includes(item.id)).map(item=>item.text);
+  selectedText.textContent=!multiple?(names[0]||'—'):values.length===options.length&&options.length?'(همه)':names.length===1?names[0]:names.length?'(چند مورد)':'(هیچ موردی)';
+  trigger.title=names.length?names.join('، '):'بدون انتخاب';trigger.setAttribute('aria-label',title+': '+selectedText.textContent);
+ }
  function render(){list.replaceChildren();const rows=visible();all.hidden=!multiple;allBox.checked=rows.length>0&&rows.every(item=>draft.has(item.id));allBox.indeterminate=rows.some(item=>draft.has(item.id))&&!allBox.checked;
   for(const item of rows){const row=document.createElement('label');row.className='excel-option';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=draft.has(item.id);checkbox.dataset.value=item.id;checkbox.addEventListener('change',()=>{if(!multiple)draft.clear();if(checkbox.checked)draft.add(item.id);else draft.delete(item.id);render()});row.append(checkbox,document.createTextNode(item.text));list.append(row)}
   if(!rows.length){const empty=document.createElement('div');empty.className='excel-empty';empty.textContent='نتیجه‌ای پیدا نشد';list.append(empty)}
@@ -200,6 +209,20 @@ function enhanceMonthSelectors(){
 .plot-pane .legend span.trend-legend:before{border-color:var(--trend-color,#119b70);border-top-style:solid;box-shadow:0 0 4px var(--trend-color,#119b70)}
 .plot-pane[data-trend-direction] [id$=chartTrendStatus]{color:var(--trend-color)!important;background:color-mix(in srgb,var(--trend-color) 9%,white)}
 @media(prefers-reduced-motion:reduce){.neon-trend-flow{animation:none!important}}
+</style>
+<style>
+.excel-caption{display:block;margin-bottom:5px;font-size:12px;color:#34454e;font-weight:500}
+.excel-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:2px;border:1px solid #aeb9c2;background:#fff;color:#26343d;min-height:32px;padding:5px 8px;font-size:12px;font-weight:400;box-shadow:none;transform:none!important;transition:none}
+.excel-trigger:before,.excel-actions button:before{display:none!important}
+.excel-trigger:hover{background:#f5f7f8;border-color:#7b929f;box-shadow:none;transform:none}
+.excel-trigger[aria-expanded=true]{background:#fff;border-color:#217346;box-shadow:0 0 0 1px #217346}
+.excel-selected{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;text-align:right}
+.excel-arrow{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:16px;align-self:stretch;border-inline-start:1px solid #e0e4e7;color:#4d5961;padding-inline-start:5px}
+.excel-menu{border-radius:2px;border:1px solid #b4bdc4;box-shadow:0 4px 12px #0002;background:white}
+.excel-menu input[type=search]{border-radius:1px;min-height:30px}.excel-option{border-radius:0;padding:6px 4px}.excel-option:hover{background:#e6f0f7}.excel-option input{accent-color:#217346}
+.excel-actions button{border-radius:2px;box-shadow:none;transform:none!important;font-weight:400}.excel-actions .excel-apply{background:#217346;border-color:#217346}
+.plot-date-boundary .excel-filter{min-width:100px}.plot-date-boundary label:last-child .excel-filter{min-width:60px}.filter-dropdowns .excel-filter{min-width:160px}
+@media(max-width:650px){.filter-dropdowns .excel-filter{min-width:125px}.excel-selected{max-width:145px}}
 </style>
 </html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
