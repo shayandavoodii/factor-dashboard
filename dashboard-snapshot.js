@@ -240,7 +240,7 @@ function snapshotDB(){
 async function saveBrowserSnapshot(bundle){try{const db=await snapshotDB();await new Promise((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(bundle,'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});}catch{}}
 async function restoreBrowserSnapshot(){try{const db=await snapshotDB();const r=db.transaction('snapshots').objectStore('snapshots').get('latest');r.onsuccess=()=>{if(!snapshotBundle&&validSnapshot(r.result)){installSnapshot(r.result);snapshotETag=`"${r.result.version}"`;$('status').textContent='نمایش آخرین داده ذخیره‌شده؛ در حال بررسی بروزرسانی…'}}}catch{}}
 function validSnapshot(b){
- if(b?.hourFiltering!==false||b?.persianYear!==1405)return false;
+ if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.barcodeFiltering!==false||b?.inventoryRestriction!==false)return false;
  if(!b||b.schema!==2||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
@@ -422,19 +422,19 @@ function paintInteractiveChart(){
  const trendFirst=Math.ceil(chartView.start),trendLast=Math.min(data.days.length-1,Math.floor(chartView.start+chartView.span-1));
  const trend=chartTrend(data.days,trendFirst,trendLast);chartView.trend=trend;
  const fitted=trend?[trend.intercept+trend.slope*trend.first,trend.intercept+trend.slope*trend.last]:[];
- const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,data.selectedMean,...fitted,...visible.flatMap(d=>[d.count,d.selectedCount]))*1.18*chartView.scale;
+ const visible=data.days.slice(first,last+1),maximum=Math.max(1,data.mean,...fitted,...visible.map(d=>d.count))*1.18*chartView.scale;
  const x=i=>chartView.span===1?(L+R)/2:L+20+(i-chartView.start)*(R-L-20*2)/(chartView.span-1),y=n=>B-n/maximum*(B-T);
  chartView.geometry={W,H,L,R,T,B,x,y};
  const add=(tag,attrs,parent=svg)=>el(tag,attrs,parent),text=(px,py,value,attrs={},parent=svg)=>{const node=add('text',{x:px,y:py,fill:'#bdcde6','font-size':11,...attrs},parent);node.textContent=value;return node};
  const defs=add('defs',{}),clip=add('clipPath',{id:'chart-window-clip'},defs);add('rect',{x:L,y:T,width:R-L,height:B-T},clip);
  const series=add('g',{'clip-path':'url(#chart-window-clip)'});
  for(let tick=0;tick<=4;tick++){const value=maximum*tick/4;add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:'#ffffff18'});text(R+12,y(value)+4,fmt(value))}
- for(const [value,color,title] of [[data.mean,'#d1a4ff','میانگین کل'],[data.selectedMean,'#ffad75','میانگین حامی']]){
+ for(const [value,color,title] of [[data.mean,'#d1a4ff','میانگین کل']]){
   add('line',{x1:L,x2:R,y1:y(value),y2:y(value),stroke:color,'stroke-dasharray':'6 6'},series);
   text(L+8,Math.max(T+12,Math.min(B-5,y(value)-7)),`${title}: ${fmt(value)}`,{fill:color,'font-size':10},series);
  }
  const labelStep=Math.max(1,Math.ceil(64/((R-L)/Math.max(1,chartView.span-1))));
- for(const [field,color,cls,offset] of [['count','#82ffe3','total',-13],['selectedCount','#ffbd8c','selected',21]]){
+ for(const [field,color,cls,offset] of [['count','#82ffe3','total',-13]]){
   const points=visible.map((d,j)=>({d,i:first+j})).filter(({d})=>!d.future||d[field]>0);
   const path=points.map(({d,i},j)=>`${j?'L':'M'} ${x(i)} ${y(d[field])}`).join(' ');
   add('path',{class:cls+'-series',d:path,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},series);
@@ -460,7 +460,7 @@ function paintInteractiveChart(){
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
  drawHours(day,data);const tip=$('tip');tip.replaceChildren();
- for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`حاوی بارکد حامی: ${fmt(day.selectedCount)}`,`سهم حامی: ${share(day.selectedCount,day.count)}`,`کل نسبت به میانگین: ${percent(day.count,data.mean)}`,`حامی نسبت به میانگین: ${percent(day.selectedCount,data.selectedMean)}`,previous?`حامی نسبت به روز قبل: ${percent(day.selectedCount,previous.selectedCount)}`:'نخستین روز دوره',`منبع: ${source(day.source)} · از 00:00 تا ${data.windowEnd}`]){const line=document.createElement('div');line.textContent=value;tip.append(line)}
+ for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین روزهای تکمیل‌شده: ${percent(day.count,data.mean)}`,'FamilyDWH · بدون فیلتر ساعت یا بارکد']){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
  const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
