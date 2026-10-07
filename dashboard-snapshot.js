@@ -511,8 +511,20 @@ function paintInteractiveChart(){
   pane.style.setProperty('--trend-bright',falling?'#ff8298':'#51e5ad');
   $('chartTrendStatus').style.setProperty('color',trendColor,'important');
   const trendGeometry={x1:x(trend.first),y1:y(fitted[0]),x2:x(trend.last),y2:y(fitted[1]),'pointer-events':'none','stroke-linecap':'round'};
-  add('line',{...trendGeometry,class:'visible-trend neon-trend-base',stroke:trendColor,'stroke-width':1.15},series);
-  add('line',{...trendGeometry,class:'neon-trend-flow',stroke:trendColor,'stroke-width':1.5,'stroke-dasharray':'14 26'},series);
+  add('line',{...trendGeometry,class:'visible-trend neon-trend-base',stroke:trendColor,'stroke-width':2.2},series);
+  add('line',{...trendGeometry,class:'neon-trend-flow',stroke:trendColor,'stroke-width':1.2},series);
+  const dx=trendGeometry.x2-trendGeometry.x1,dy=trendGeometry.y2-trendGeometry.y1,length=Math.hypot(dx,dy);
+  const nx=length?-dy/length:0,ny=length?dx/length:1;
+  const seeds=add('g',{class:'trend-seeds','pointer-events':'none','aria-hidden':'true'},series);
+  const seedCount=Math.max(40,Math.min(180,Math.round(length/6)));
+  const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for(let seed=0;seed<seedCount;seed++){
+   const phase=seed/seedCount,lane=((seed*37)%17-8)*.3,bend=((seed*13)%19-9)*.38,duration=3.8+(seed%11)*.19;
+   const sx=trendGeometry.x1+nx*lane,sy=trendGeometry.y1+ny*lane,ex=trendGeometry.x2+nx*lane,ey=trendGeometry.y2+ny*lane;
+   const path=`M ${sx} ${sy} Q ${(sx+ex)/2+nx*bend} ${(sy+ey)/2+ny*bend} ${ex} ${ey}`;
+   const dot=add('circle',{class:'trend-seed',r:.45+(seed%5)*.1,cx:reducedMotion?sx+dx*phase:0,cy:reducedMotion?sy+dy*phase:0,fill:seed%4===0?'#ffffff':'var(--trend-bright)',opacity:.8+(seed%3)*.1},seeds);
+   if(!reducedMotion)add('animateMotion',{path,dur:duration+'s',begin:-(phase*duration)+'s',repeatCount:'indefinite',calcMode:'linear'},dot);
+  }
   $('chartTrendStatus').textContent=`روند خطی بازه نمایان: ${fmt(trend.slope)} ${amountMode?'تومان به ازای فاکتور':'فاکتور'} در ${chartView.aggregation==='daily'?'روز':chartView.aggregation==='monthly'?'ماه':'سه ماه'}`;
  }else $('chartTrendStatus').textContent='برای محاسبه روند حداقل دو نقطه لازم است.';
  for(let i=first;i<=last;i++){if(x(i)<L||x(i)>R||i%labelStep)continue;const day=data.days[i];text(x(i),B+23,fa(day.persian.slice(5)),{'text-anchor':'middle',fill:day.today?'#a2701d':'#667b91'})}
