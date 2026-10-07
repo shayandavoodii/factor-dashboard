@@ -240,6 +240,14 @@ main .cards .card:nth-child(n+4) .value{font-size:28px}main .cards .card:nth-chi
 @media(max-width:1000px){main>.cards{grid-template-columns:1fr 1fr!important;grid-template-rows:auto}main .cards .card:nth-child(1){grid-column:1/-1;grid-row:1;display:block;padding:24px}main .cards .card:nth-child(1) .card-split{margin:10px 0 0}main .cards .card:nth-child(1) .value{font-size:46px;margin:5px 0}main .cards .card:nth-child(1) .note{max-width:none}main .cards .card:nth-child(2){grid-column:1;grid-row:2}main .cards .card:nth-child(3){grid-column:2;grid-row:2}main .cards .card:nth-child(4){grid-column:1;grid-row:3}main .cards .card:nth-child(5){grid-column:2;grid-row:3}}
 @media(max-width:650px){main>.inventory-filter{padding:14px 16px}.inventory-filter .filter-head{flex-direction:column;align-items:stretch;gap:12px}.inventory-filter .filter-head>div:first-child{display:flex;justify-content:space-between;align-items:center}.inventory-filter .filter-dropdowns{gap:10px}main .cards .card{padding:16px 14px;border-radius:12px}main .cards .card .label{font-size:12px}main .cards .card .value,main .cards .card:nth-child(n+4) .value{font-size:clamp(20px,4.6vw,26px)}main .cards .card .note{font-size:10px}main .cards .card:nth-child(1){padding:20px}main .cards .card:nth-child(1) .value{font-size:44px}}
 </style>
+<style>
+.inventory-table .dual-slider[hidden],.inventory-table .period-labels[hidden]{display:none!important}
+.table-date-menus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:10px 0}
+.table-date-menus .excel-filter{min-width:0;width:100%}
+.table-date-menus .excel-trigger{width:100%}
+.inventory-table .table-period .period-span{text-align:start;margin:0;font-size:12px}
+.inventory-table .table-period .comparison-title{margin-bottom:8px}
+</style>
 </html>
 <style>.card-split{display:block}.total-metric{width:100%}</style>
 

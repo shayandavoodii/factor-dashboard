@@ -35,6 +35,30 @@ function inventoryPressed(filter,mode,value){
 function setupInventoryMultiselect(){setupExcelInventoryFilters()}
 function persistInventorySelection(){try{sessionStorage.setItem('factor-view',JSON.stringify(viewFilter))}catch{}}
 let tableSort=[];
+let tableDateFilters={first:{months:null,days:null},second:{months:null,days:null}};
+const tableDateMenus=[];
+try{const saved=JSON.parse(sessionStorage.getItem('factor-table-dates')||'null');for(const name of ['first','second'])for(const field of ['months','days'])if(saved?.[name]?.[field]===null||Array.isArray(saved?.[name]?.[field])&&saved[name][field].every(value=>typeof value==='string'))tableDateFilters[name][field]=saved[name][field]}catch{}
+function tableDateKey(date){return String(date).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g,'')}
+function tableDateIndices(start,end,name){
+ const filter=tableDateFilters[name];return (tablePayload?.dates||[]).flatMap((date,index)=>{const key=tableDateKey(date);return index>=start&&index<=end&&(filter.months===null||filter.months.includes(key.slice(0,6)))&&(filter.days===null||filter.days.includes(key.slice(6,8)))?[index]:[]});
+}
+function setupTableDateMenus(){
+ for(const [name,base] of [['first','table'],['second','compare']]){
+  const period=$(base+'Start').closest('.table-period');period.querySelector('.dual-slider').hidden=true;period.querySelector('.period-labels').hidden=true;
+  const menus=document.createElement('div');menus.className='table-date-menus';period.append(menus);
+  const available=field=>[...new Set((tablePayload?.dates||[]).map(tableDateKey).filter(key=>field==='months'||tableDateFilters[name].months===null||tableDateFilters[name].months.includes(key.slice(0,6))).map(key=>field==='months'?key.slice(0,6):key.slice(6,8)))].sort();
+  for(const [field,title] of [['months','ماه'],['days','روز']]){
+   const host=document.createElement('div');host.id=base+'Date'+field;menus.append(host);
+   tableDateMenus.push(new ExcelFilter(host,{title,items:()=>available(field).map(id=>({id,text:field==='months'?fmt(Number(id.slice(0,4)))+'/'+fmt(Number(id.slice(4))):fmt(Number(id))})),selected:()=>tableDateFilters[name][field]??available(field),apply:values=>{
+    const options=available(field);tableDateFilters[name][field]=options.every(value=>values.includes(value))?null:values.sort();
+    if(field==='months'&&tableDateFilters[name].days!==null)tableDateFilters[name].days=tableDateFilters[name].days.filter(value=>available('days').includes(value));
+    $(base+'Start').value=0;$(base+'End').value=$(base+'End').max;
+    try{sessionStorage.setItem('factor-table-dates',JSON.stringify(tableDateFilters));sessionStorage.setItem(base==='table'?'factor-range':'factor-compare-range',JSON.stringify(base==='table'?{start:tablePayload.dates[0],end:tablePayload.dates.at(-1),followEnd:true}:readComparisonRange()))}catch{}
+    fetchInventoryTable();
+   }}));
+  }
+ }
+}
 const validSortKey=key=>key==='averageNet'||buckets.includes(key)||/^(second|growth)_(total|low|mid|high|veryhigh|averageNet)$/.test(key);
 try{const saved=JSON.parse(sessionStorage.getItem('factor-table-sort')||'null');for(const entry of Array.isArray(saved)?saved:saved?[saved]:[]){if(entry&&validSortKey(entry.key)&&['ascending','descending'].includes(entry.direction)&&!tableSort.length)tableSort.push(entry)}}catch{}
 function sortTableRows(rows){
@@ -138,7 +162,7 @@ function comparisonHeaders(compare){
  wireTableSorting();
 }
 function renderComparedTable(a,b){
- updateComparisonSlider();updateHourSlider('first');updateHourSlider('second');const c=Number($('compareStart').value),d=Number($('compareEnd').value),compare=a!==c||b!==d||hourRange('first').join()!==hourRange('second').join();
+ updateComparisonSlider();updateHourSlider('first');updateHourSlider('second');const c=Number($('compareStart').value),d=Number($('compareEnd').value),compare=JSON.stringify(tableDateIndices(a,b,'first'))!==JSON.stringify(tableDateIndices(c,d,'second'))||hourRange('first').join()!==hourRange('second').join();
  comparisonHeaders(compare);
  const first=sumTableRange(a,b,'first');
  if(!compare){renderInventoryTable({rows:sortTableRows(first),startDate:tablePayload.dates[a],endDate:tablePayload.dates[b]});return}
@@ -325,6 +349,7 @@ function installSnapshot(bundle){
 }
 function sumTableRange(start,end,windowName='first'){
  if(!tablePayload||!tablePrefix)return [];
+ const filtered=tableDateFilters[windowName].months!==null||tableDateFilters[windowName].days!==null,indices=filtered?tableDateIndices(start,end,windowName):null;
  const legacy=tablePayload.legacyFilter;
  if(legacy&&legacy.mode!=='all'&&snapshotKey(legacy)!==snapshotKey(viewFilter))return [];
  return tablePayload.inventories.flatMap((meta,i)=>{
@@ -332,15 +357,19 @@ function sumTableRange(start,end,windowName='first'){
   if(viewFilter.mode==='supervisor'&&meta.supervisor!==viewFilter.value||viewFilter.mode==='inventory'&&meta.id!==viewFilter.value)return [];
   const row={...meta},[from,to]=hourRange(windowName),stride=tablePayload.inventories.length*5;
   buckets.forEach((k,j)=>{
+   if(filtered){row[k]=indices.reduce((total,index)=>total+(tablePayload.daily[index]?.[i]?.[j]||0),0);return}
    if(!hourlyPrefix){row[k]=tablePrefix[end+1][i][j]-tablePrefix[start][i][j];return}
    row[k]=0;for(let hour=from;hour<=to;hour++)row[k]+=hourlyPrefix[hour][(end+1)*stride+i*5+j]-hourlyPrefix[hour][start*stride+i*5+j];
-  });row.netAmount=netPrefix[end+1][i]-netPrefix[start][i];row.averageNet=averageNet(row.netAmount,row.total);return [row];
+  });row.netAmount=filtered?indices.reduce((total,index)=>total+(tablePayload.dailyNetAmounts[index]?.[i]||0),0):netPrefix[end+1][i]-netPrefix[start][i];row.averageNet=averageNet(row.netAmount,row.total);return [row];
  });
 }
 function fetchInventoryTable(){
  if(!tablePayload){$('tableRange').textContent='در انتظار اولین نسخه ذخیره‌شده جدول…';return}
  const a=Number($('tableStart').value),b=Number($('tableEnd').value);updateDualSlider();
  renderComparedTable(a,b);
+ tableDateMenus.forEach(menu=>menu.updateLabel());
+ const dateSummary=[];for(const [name,base] of [['first','table'],['second','compare']]){const count=tableDateIndices(Number($(base+'Start').value),Number($(base+'End').value),name).length;$(base+'PeriodDays').textContent=fmt(count)+' روز منتخب';dateSummary.push((name==='first'?'بازه اول':'بازه دوم')+': '+fmt(count)+' روز منتخب')}
+ $('tableRange').textContent=dateSummary.join(' · ');
  const timestamp=new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(tablePayload.fetchedAt*1000));
  $('tableRange').textContent+=` · داده ذخیره‌شده: ${timestamp}`;
  const legacy=tablePayload.legacyFilter;
@@ -629,7 +658,7 @@ function setupPlotComparison(){
  });
 }
 setupPlotComparison();
-setupComparison();setupTableSorting();
+setupComparison();setupTableDateMenus();setupTableSorting();
 
 setupInventoryMultiselect();
 enhanceMonthSelectors();
