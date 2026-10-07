@@ -82,7 +82,7 @@ function wireTableSorting(){
 const metricOrder=['low','mid','high','veryhigh','total','averageNet'];
 let metricLabels=[],metadataLabels=[],comparisonLayout=null;
 const percentFormatter=new Intl.NumberFormat('fa-IR',{maximumFractionDigits:1});
-function growthPercent(first,second){return first===0?(second===0?0:null):100*(second-first)/first}
+function growthPercent(first,second){return first===null||second===null?null:first===0?(second===0?0:null):100*(second-first)/first}
 function readComparisonRange(){
  if(!tablePayload||!$('compareStart'))return null;
  return {start:tablePayload.dates[Number($('compareStart').value)],end:tablePayload.dates[Number($('compareEnd').value)],followEnd:$('compareEnd').value===$('compareEnd').max};
