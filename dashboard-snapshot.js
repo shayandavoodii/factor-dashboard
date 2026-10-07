@@ -19,12 +19,12 @@ function combineInventoryCharts(scope){
    if(!ids.every(id=>view.filter.inventoryIds.includes(id)))return false;
    const key=snapshotKey(view.filter);if(additiveScopeCache.has(key))return additiveScopeCache.get(key);
    const members=view.filter.inventoryIds.map(id=>snapshotBundle.charts[`inventory:${id}`]);
-   const valid=members.every(Boolean)&&['counts','selectedCounts','hours','selectedHours'].every(field=>view[field].every((value,i)=>Array.isArray(value)?value.every((n,j)=>members.reduce((sum,v)=>sum+v[field][i][j],0)===n):members.reduce((sum,v)=>sum+v[field][i],0)===value));
+   const valid=members.every(Boolean)&&['counts','hours'].every(field=>view[field].every((value,i)=>Array.isArray(value)?value.every((n,j)=>members.reduce((sum,v)=>sum+v[field][i][j],0)===n):members.reduce((sum,v)=>sum+v[field][i],0)===value));
    additiveScopeCache.set(key,valid);return valid;
   });
   if(!certified)return null;
  }
- return {filter:scope,counts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.counts[i],0)),selectedCounts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.selectedCounts[i],0)),hours:base.days.map((d,i)=>d.hours.map((_,j)=>branches.reduce((n,v)=>n+v.hours[i][j],0))),selectedHours:base.days.map((d,i)=>d.hours.map((_,j)=>branches.reduce((n,v)=>n+v.selectedHours[i][j],0)))};
+ return {filter:scope,counts:base.days.map((_,i)=>branches.reduce((n,v)=>n+v.counts[i],0)),hours:base.days.map((d,i)=>d.hours.map((_,j)=>branches.reduce((n,v)=>n+v.hours[i][j],0)))};
 }
 function inventoryPressed(filter,mode,value){
  if(filter.mode!=='selection')return filter.mode===mode&&(mode==='all'||filter.value===value);
@@ -240,8 +240,8 @@ function snapshotDB(){
 async function saveBrowserSnapshot(bundle){try{const db=await snapshotDB();await new Promise((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(bundle,'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});}catch{}}
 async function restoreBrowserSnapshot(){try{const db=await snapshotDB();const r=db.transaction('snapshots').objectStore('snapshots').get('latest');r.onsuccess=()=>{if(!snapshotBundle&&validSnapshot(r.result)){installSnapshot(r.result);snapshotETag=`"${r.result.version}"`;$('status').textContent='نمایش آخرین داده ذخیره‌شده؛ در حال بررسی بروزرسانی…'}}}catch{}}
 function validSnapshot(b){
- if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.barcodeFiltering!==false||b?.inventoryRestriction!==false)return false;
- if(!b||b.schema!==2||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
+ if(b?.hourFiltering!==false||b?.persianYear!==1405||b?.inventoryRestriction!==false)return false;
+ if(!b||b.schema!==3||typeof b.version!=='string'||!Number.isFinite(b.fetchedAt)||!b.charts||typeof b.charts!=='object')return false;
  const t=b.table;
  if(t&&(!Array.isArray(t.dates)||!t.dates.length||!Array.isArray(t.inventories)||!Array.isArray(t.daily)||t.daily.length!==t.dates.length||!t.daily.every(day=>Array.isArray(day)&&day.length===t.inventories.length&&day.every(v=>Array.isArray(v)&&v.length===5&&v.every(n=>Number.isSafeInteger(n)&&n>=0)&&v[0]===v.slice(1).reduce((a,n)=>a+n,0)))))return false;
  const days=b.chartTemplate?.days;
@@ -256,7 +256,7 @@ function validSnapshot(b){
   }
   if(!t.daily.every((day,d)=>day.every((counts,i)=>counts.every((n,k)=>n===totals[(d*t.inventories.length+i)*5+k]))))return false;
  }
- return Object.values(b.charts).every(c=>c.filter&&Array.isArray(days)&&['counts','selectedCounts','hours','selectedHours'].every(k=>Array.isArray(c[k])&&c[k].length===days.length)&&c.counts.every((n,i)=>Number.isSafeInteger(n)&&n>=0&&Number.isSafeInteger(c.selectedCounts[i])&&c.selectedCounts[i]>=0&&c.selectedCounts[i]<=n&&['hours','selectedHours'].every(k=>Array.isArray(c[k][i])&&c[k][i].length===days[i].hours.length&&c[k][i].every(v=>Number.isSafeInteger(v)&&v>=0))));
+ return Object.values(b.charts).every(c=>c.filter&&Array.isArray(days)&&['counts','hours'].every(k=>Array.isArray(c[k])&&c[k].length===days.length)&&c.counts.every((n,i)=>Number.isSafeInteger(n)&&n>=0&&['hours'].every(k=>Array.isArray(c[k][i])&&c[k][i].length===days[i].hours.length&&c[k][i].every(v=>Number.isSafeInteger(v)&&v>=0))));
 }
 function selectedScope(){
  const options=snapshotBundle?.chartTemplate?.inventoryOptions||snapshotBundle?.table?.inventories||[];
@@ -272,11 +272,11 @@ function selectedScope(){
 function chartForScope(scope){
  const view=scope.mode==='selection'?combineInventoryCharts(scope):snapshotBundle.charts[snapshotKey(scope)],base=snapshotBundle.chartTemplate;
  if(!view||!base)return null;
- const days=base.days.map((d,i)=>({...d,count:view.counts[i],selectedCount:view.selectedCounts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j],selectedCount:view.selectedHours[i][j]}))}));
+ const days=base.days.map((d,i)=>({...d,count:view.counts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j]}))}));
  const history=days.filter(d=>!d.today&&!d.future),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const asOf=days.find(d=>d.today)?.date||days.at(-1).date;
- return {...base,days,inventoryFilter:view.filter,mean:mean('count'),selectedMean:mean('selectedCount'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:asOf,dateMismatch:asOf!==today}};
+ return {...base,days,inventoryFilter:view.filter,mean:mean('count'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:asOf,dateMismatch:asOf!==today}};
 }
 function renderSnapshotView(){
  if(!snapshotBundle)return;
@@ -286,8 +286,8 @@ function renderSnapshotView(){
   lastSaved=null;chartView.data=null;
   renderInventoryFilters({inventoryFilter:scope,inventoryOptions:snapshotBundle.chartTemplate?.inventoryOptions||snapshotBundle.table?.inventories||[]});
   document.querySelectorAll('.cards .value').forEach(e=>e.textContent='—');
-  for(const id of ['todayNote','specialTodayNote','delta','specialDelta','specialDeltaNote','selectedToday','selectedShare','selectedMean','hourDetail'])if($(id))$(id).textContent='';
-  $('plot').replaceChildren();label(500,170,scope.mode==='selection'?'آمار تجمیعی این انتخاب در دسترس نیست.':'در انتظار آماده شدن نمودار این محدوده…',{'text-anchor':'middle'});$('hours').replaceChildren();
+  for(const id of ['todayNote','delta'])if($(id))$(id).textContent='';
+  $('plot').replaceChildren();label(500,170,scope.mode==='selection'?'آمار تجمیعی این انتخاب در دسترس نیست.':'در انتظار آماده شدن نمودار این محدوده…',{'text-anchor':'middle'});
   $('filterStatus').textContent=scope.mode==='selection'?'جدول به‌روز شد؛ آمار تجمیعی نمودار برای این ترکیب در نسخه ذخیره‌شده قابل تأیید نیست.':'نمودار این محدوده هنوز در نسخه ذخیره‌شده موجود نیست.';
  }
  fetchInventoryTable();
@@ -457,7 +457,7 @@ function paintInteractiveChart(){
 }
 function chartTooltip(index){
  const data=chartView.data,day=data.days[index],previous=data.days[index-1];if(!day)return;
- drawHours(day,data);const tip=$('tip');tip.replaceChildren();
+ const tip=$('tip');tip.replaceChildren();
  for(const value of [day.persian,`کل فاکتورها: ${fmt(day.count)}`,`نسبت به میانگین روزهای تکمیل‌شده: ${percent(day.count,data.mean)}`,'FamilyDWH · بدون فیلتر ساعت یا بارکد']){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
