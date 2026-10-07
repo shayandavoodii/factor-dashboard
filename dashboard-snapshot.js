@@ -402,6 +402,7 @@ function chartSelectMonths(from,to=from){
  const days=chartView.data?.days;if(!days?.length)return;
  const first=days.findIndex(d=>(d.endMonth||chartMonthKey(d.persian))>=from),last=days.findLastIndex(d=>(d.startMonth||chartMonthKey(d.persian))<=to);
  if(first<0||last<first)return;
+ $('chartMonthFrom').value=from;$('chartMonthTo').value=to;
  chartView.start=first;chartView.span=last-first+1;chartView.scale=1;chartView.latest=last===days.length-1;chartView.initialized=true;chartClamp();chartSchedule();
 }
 function chartRecentMonths(count){
