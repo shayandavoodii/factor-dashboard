@@ -455,7 +455,7 @@ function renderInteractiveChart(data){
  chartClamp();paintInteractiveChart();
 }
 function paintInteractiveChart(){
- let data=chartView.data;if(!data?.days.length)return;const amountMode=chartView.metric==='averageNet';if(amountMode){const net=data.days.reduce((s,d)=>s+d.netAmount,0),count=data.days.reduce((s,d)=>s+d.count,0);data={...data,mean:averageNet(net,count)||0,days:data.days.map(day=>({...day,count:averageNet(day.netAmount,day.count)}))}}const visibleRaw=chartView.data.days.slice(Math.ceil(chartView.start),Math.floor(chartView.start+chartView.span));const net=visibleRaw.reduce((s,d)=>s+d.netAmount,0),count=visibleRaw.reduce((s,d)=>s+d.count,0);$('chartNetAverage').textContent='میانگین خالص بازه نمایان: '+(count?fmt(net/count)+' تومان':'—');
+ let data=chartView.data;if(!data?.days.length)return;const amountMode=chartView.metric==='averageNet';const pane=$('plot').closest('.chart');pane.querySelector('.chart-title').textContent=amountMode?'میانگین خالص هر فاکتور (تومان)':chartView.aggregation==='daily'?'روند روزانه کل فاکتورها':chartView.aggregation==='monthly'?'مجموع ماهیانه فاکتورها':'مجموع سه ماهه فاکتورها';pane.querySelector('.count-legend').textContent=amountMode?'میانگین خالص هر فاکتور':'تعداد فاکتورها';if(amountMode){const net=data.days.reduce((s,d)=>s+d.netAmount,0),count=data.days.reduce((s,d)=>s+d.count,0);data={...data,mean:averageNet(net,count)||0,days:data.days.map(day=>({...day,count:averageNet(day.netAmount,day.count)}))}}const visibleRaw=chartView.data.days.slice(Math.ceil(chartView.start),Math.floor(chartView.start+chartView.span));const net=visibleRaw.reduce((s,d)=>s+d.netAmount,0),count=visibleRaw.reduce((s,d)=>s+d.count,0);$('chartNetAverage').textContent='میانگین خالص بازه نمایان: '+(count?fmt(net/count)+' تومان':'—');
  chartClamp();const svg=$('plot');svg.replaceChildren();$('tip').hidden=true;
  const W=svg.clientWidth||1000,H=400,L=18,R=W-84,T=30,B=326;
  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -509,7 +509,8 @@ function chartTooltip(index){
  for(const value of [day.persian,day.periodStart?`${day.periodStart} تا ${day.periodEnd}`:'',`کل فاکتورها: ${fmt(day.count)}`,`میانگین خالص هر فاکتور: ${day.count?fmt(day.netAmount/day.count)+' تومان':'—'}`,`نسبت به میانگین دوره‌ها: ${percent(day.count,data.mean)}`,'تمام فاکتورها'].filter(Boolean)){const line=document.createElement('div');line.textContent=value;tip.append(line)}
  tip.hidden=false;
  const svg=$('plot'),plot=svg.closest('.chart'),sr=svg.getBoundingClientRect(),pr=plot.getBoundingClientRect(),g=chartView.geometry;
- const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(day.count)/g.H)*sr.height;
+ const plottedValue=chartView.metric==='averageNet'?(averageNet(day.netAmount,day.count)||0):day.count;
+ const px=sr.left-pr.left+(g.x(index)/g.W)*sr.width,py=sr.top-pr.top+(g.y(plottedValue)/g.H)*sr.height;
  const gap=12;let left=px+gap,top=py-tip.offsetHeight-gap;
  left=Math.max(8,Math.min(left,plot.clientWidth-tip.offsetWidth-8));
  top=Math.max(8,Math.min(top,plot.clientHeight-tip.offsetHeight-8));
