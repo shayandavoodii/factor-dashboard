@@ -281,7 +281,7 @@ function chartForScope(scope){
 function renderSnapshotView(){
  if(!snapshotBundle)return;
  const scope=selectedScope(),chart=chartForScope(scope);
- if(chart){lastSaved=chart;draw(chart);$('filterStatus').textContent='';renderFetchStatus()}
+ if(chart){lastSaved=chart;draw(chart);$('filterStatus').textContent=''}
  else{
   lastSaved=null;chartView.data=null;
   renderInventoryFilters({inventoryFilter:scope,inventoryOptions:snapshotBundle.chartTemplate?.inventoryOptions||snapshotBundle.table?.inventories||[]});
@@ -518,5 +518,5 @@ if(publicSnapshotMode){
  $('buttonText').textContent='بررسی بروزرسانی';
  setInterval(()=>refresh(true),60000);
 }else{
- updateFetchStatus();setInterval(updateFetchStatus,3000);setInterval(()=>refresh(true),15000);setInterval(renderFetchStatus,1000);
+ setInterval(()=>refresh(true),15000);
 }

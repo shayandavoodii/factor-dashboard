@@ -32,34 +32,16 @@
 <div class="table-period"><p class="period-span" id="tablePeriodDays" aria-live="polite">بازه‌ای در انتظار روزهایش…</p><div class="period-labels"><label for="tableStart">از <output id="tableStartDate">—</output></label><label for="tableEnd">تا <output id="tableEndDate">—</output></label></div><div class="dual-slider"><input id="tableStart" aria-label="شروع بازه" type="range" min="0" max="0" value="0" step="1" disabled><input id="tableEnd" aria-label="پایان بازه" type="range" min="0" max="0" value="0" step="1" disabled></div></div>
 <div class="table-scroll" tabindex="0" role="region" aria-label="جدول تحلیل شعب؛ برای مشاهده همه ستون‌ها پیمایش کنید"><table><thead><tr><th scope="col">نام فروشگاه</th><th scope="col">استان</th><th scope="col">مدیر</th><th scope="col">معاونت</th><th scope="col">کمتر از ۳ میلیون</th><th scope="col">۳ تا کمتر از ۵ میلیون</th><th scope="col">۵ تا کمتر از ۷ میلیون</th><th scope="col">۷ میلیون و بیشتر</th><th scope="col">جمع فاکتور</th></tr></thead><tbody id="inventoryTableBody"><tr><td colspan="9" class="table-empty">در انتظار اطلاعات شعب…</td></tr></tbody></table></div>
 </section>
-<div class="automation"><div class="auto-control"><button id="autoFetch" class="auto-toggle" type="button" role="switch" aria-checked="false" aria-label="دریافت خودکار داده‌ها" disabled><span class="toggle-knob"></span></button><div><strong id="autoHeading">دریافت خودکار</strong><div class="interval-picker" role="group" aria-label="فاصله دریافت خودکار"><span>هر</span><button type="button" data-interval="5" aria-pressed="false" disabled>۵</button><button type="button" data-interval="10" aria-pressed="false" disabled>۱۰</button><button type="button" data-interval="15" aria-pressed="false" disabled>۱۵</button><span>دقیقه</span></div><div class="note" id="autoLabel">در حال دریافت وضعیت…</div></div></div><div class="auto-info"><span id="fetchState" role="status" aria-live="polite">در حال اتصال…</span><span id="cacheAge"></span><span id="nextFetch"></span></div></div>
 
 <footer><span>FamilyDWH · تمام فاکتورها در سال ۱۴۰۵ · آرشیو ماهانه</span><span id="status" role="status" aria-live="polite">در حال اتصال به سرویس داده…</span></footer></main>
 <style>
 .legend span.total-mean-legend:before{border-top:2px dashed #d1a4ff}
 </style>
-<style>
-.automation{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 24px;padding:18px 22px;border:1px solid #89e6d840;border-radius:20px;background:linear-gradient(115deg,#263b5966,#24524b55)}.auto-control{display:flex;align-items:center;gap:14px}.auto-control strong{font-size:14px;color:#d9fff4}.auto-toggle{direction:ltr;position:relative;min-width:60px;width:60px;height:34px;padding:0;flex-shrink:0;border:1px solid #95abc655;border-radius:20px;background:#42516b;box-shadow:inset 0 2px 6px #0003;transition:background .25s,box-shadow .25s}.auto-toggle:before{display:none}.auto-toggle:hover{transform:none;box-shadow:0 0 18px #7bf5df30}.auto-toggle[aria-checked="true"]{background:linear-gradient(110deg,#43d6bd,#83ead1);box-shadow:0 0 20px #55f3dc25}.toggle-knob{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#f5fcff;box-shadow:0 2px 6px #0004;transition:transform .25s}.auto-toggle[aria-checked="true"] .toggle-knob{transform:translateX(26px)}.auto-info{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:#bccfe6}.auto-info #fetchState{color:#85f9db}.auto-info #fetchState.busy:before{content:' ';display:inline-block;width:7px;height:7px;margin-inline-end:7px;border-radius:50%;background:#ffdc99;animation:fetchPulse 1.4s infinite}.auto-info #fetchState.problem{color:#ffcb98}@keyframes fetchPulse{50%{opacity:.3}}@media(max-width:650px){.automation{align-items:flex-start;flex-direction:column;padding:16px}.auto-info{line-height:1.9}.auto-control strong{font-size:13px}}
-</style>
+
 <style>
 .card-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:18px;align-items:stretch}.metric-half{min-width:0;padding-inline-end:14px}.metric-half+.metric-half{border-inline-start:1px dashed #d3e3fa66;padding-inline-start:14px;padding-inline-end:0}.metric-caption{font-size:11px;color:#d8e5f5;line-height:1.8}.card-split .value{font-size:clamp(22px,2.1vw,30px);margin:10px 0;white-space:nowrap}.card-split .note{font-size:11px;overflow-wrap:anywhere}.cards .card>.label{min-height:24px;line-height:1.8}@media(max-width:850px) and (min-width:651px){.cards{grid-template-columns:1fr}.card-split .value{font-size:30px}}@media(max-width:650px){.metric-half{padding-inline-end:12px}.metric-half+.metric-half{padding-inline-start:12px}.card-split .value{font-size:27px}.card-split{margin-top:14px}}
 </style>
-<style>
-.interval-picker{display:inline-flex;align-items:center;gap:4px;margin:9px 0 7px;padding:4px 7px;border:1px solid #9ab9eb28;border-radius:15px;background:linear-gradient(145deg,#11243fe6,#1d3554cc);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 12px #07122224;vertical-align:middle}
-.interval-picker>span{padding:0 3px;color:#a9c3e2;font-size:10px}
-.interval-picker button{isolation:isolate;display:grid;place-items:center;position:relative;min-width:36px;width:36px;height:30px;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;color:#b9cde7;font:700 12px 'Vazir Dashboard',Tahoma,sans-serif;box-shadow:none;overflow:visible;transition:transform .22s,background .22s,color .22s,box-shadow .22s,border-color .22s}
-.interval-picker button:before{content:'';position:absolute;inset:3px;border:1px solid #b3d7ff14;border-radius:7px;background:none;transform:none;transition:border-color .22s;pointer-events:none}
-.interval-picker button:after{content:'';position:absolute;bottom:2px;left:50%;width:3px;height:3px;border-radius:50%;background:#789cc2;transform:translateX(-50%);transition:width .22s,background .22s,box-shadow .22s;pointer-events:none}
-.interval-picker button:hover:not(:disabled){transform:translateY(-2px);background:#b5ddff12;color:#f0f8ff;box-shadow:0 4px 10px #0002}
-.interval-picker button[aria-pressed="true"]{color:#073f42;border-color:#a8fff0;background:linear-gradient(140deg,#d5fff5 0%,#77f5dd 48%,#64cfff 100%);box-shadow:0 0 0 2px #6effdf14,0 3px 12px #4de8d64d,inset 0 1px 0 #ffffffcc;transform:translateY(-1px)}
-.interval-picker button[aria-pressed="true"]:before{border-color:#ffffff80}
-.interval-picker button[aria-pressed="true"]:after{width:12px;background:#08756f;box-shadow:0 0 5px #d2fff4}
-.interval-picker button[aria-pressed="true"]:hover:not(:disabled){background:linear-gradient(140deg,#eefffa,#97ffe8 48%,#86dcff);box-shadow:0 0 0 2px #6effdf24,0 5px 16px #4de8d65c}
-.interval-picker button:focus-visible{outline:2px solid #ffdb98;outline-offset:3px}
-.interval-picker button:active:not(:disabled){transform:translateY(0) scale(.94)}
-.interval-picker button:disabled{cursor:wait;opacity:.55}
-@media(prefers-reduced-motion:reduce){.interval-picker button,.interval-picker button:before,.interval-picker button:after{transition:none}}
-</style>
+
 <style>.hour-bar{position:relative;flex-shrink:0}.hour-cell{min-width:36px}.hour-bars{overflow-x:auto;overflow-y:hidden;height:160px;padding-top:28px;padding-bottom:4px}.hour-bar .hour-value{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin:0 0 5px;font-size:11px;font-weight:700;line-height:16px;color:#8bffe6;white-space:nowrap;direction:ltr;pointer-events:none}.hour-cell:nth-child(3n+2) .hour-value{color:#a3dfff}.hour-cell:nth-child(3n) .hour-value{color:#d2c2ff}.hour-cell.partial .hour-value{color:#ffdc9b}</style>
 <style>
 .inventory-filter{margin:0 0 24px;padding:18px 20px;border:1px solid #a890ff38;border-radius:20px;background:linear-gradient(125deg,#342c5f99,#203e5b99);box-shadow:0 12px 34px #07132524}.filter-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.filter-head>div{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.filter-head strong{color:#e8ddff;font-size:14px}.filter-head #activeInventory{padding:5px 11px;border-radius:999px;background:#b59aff1a;color:#d9cbff;font-size:11px;border:1px solid #c7b6ff30}.locations-toggle{padding:8px 13px;border-radius:11px;background:#182c49;color:#d8e8ff;border-color:#83b7e83d;box-shadow:none;font-size:11px}.locations-toggle span{display:inline-block;margin-inline-start:5px;transition:transform .2s}.locations-toggle[aria-expanded="true"] span{transform:rotate(180deg)}.supervisor-buttons,.location-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}.filter-chip{min-height:32px;padding:7px 13px;border-radius:999px;background:#172b49;color:#c5daf1;border:1px solid #739bc93d;box-shadow:none;font-size:11px}.filter-chip:before{display:none}.filter-chip:hover{transform:translateY(-2px);box-shadow:0 5px 14px #0003;border-color:#8fcaff80}.filter-chip[aria-pressed="true"]{color:#15333b;background:linear-gradient(135deg,#dffff7,#70f1d5 55%,#8fd1ff);border-color:#baffee;box-shadow:0 0 0 2px #7effdf14,0 5px 16px #54e9d348;font-weight:700}.filter-chip.inventory[aria-pressed="true"]{background:linear-gradient(135deg,#f0eaff,#bca5ff 55%,#80d8ff);border-color:#e1d7ff}.location-panel{margin-top:14px;padding:14px;border-radius:15px;background:#101e36a8;border:1px solid #a1bfff20}.location-panel label{display:block;color:#aec4df;font-size:10px;margin-bottom:7px}.location-panel input{width:100%;padding:10px 13px;border-radius:11px;border:1px solid #85add446;background:#122641;color:#f1f7ff;font:12px 'Vazir Dashboard',Tahoma,sans-serif;outline:none}.location-panel input:focus{border-color:#8df6dc;box-shadow:0 0 0 3px #62e8cf18}.location-buttons{max-height:210px;overflow:auto;padding:2px}.filter-status{min-height:18px;margin-top:10px;color:#ffdc9a;font-size:11px}.inventory-filter.busy{border-color:#ffd48070}.inventory-filter.busy .filter-chip,.inventory-filter.busy .locations-toggle,.inventory-filter.busy input{pointer-events:none;opacity:.58}@media(max-width:650px){.filter-head{align-items:flex-start;flex-direction:column}.locations-toggle{align-self:stretch}.location-buttons{max-height:260px}.filter-chip{padding:7px 11px}}
@@ -114,38 +96,6 @@ function draw(data){
  renderInteractiveChart(data);
 }
 let lastSaved=null,lastFetchStatus=null,readingSnapshot=false;
-function renderFetchStatus(){
- if(!lastFetchStatus)return;
- const s=lastFetchStatus,button=$('autoFetch');button.setAttribute('aria-checked',String(s.enabled));
- $('autoHeading').textContent=`دریافت خودکار هر ${fmt(s.intervalSeconds/60)} دقیقه`;
- document.querySelectorAll('[data-interval]').forEach(b=>{b.setAttribute('aria-pressed',String(Number(b.dataset.interval)*60===s.intervalSeconds));b.disabled=changingInterval});
- $('autoLabel').textContent=s.enabled?'روشن · دریافت مستقل از باز بودن صفحه':'خاموش · نمایش آخرین داده ذخیره‌شده';
- $('fetchState').classList.toggle('busy',!!s.fetching);
- $('fetchState').classList.toggle('problem',!!s.lastError||!s.workerRunning);
- $('fetchState').textContent=!s.workerRunning?'سرویس دریافت پس‌زمینه در دسترس نیست':s.fetching?(s.enabled?'در حال دریافت و ذخیره داده‌های جدید…':'دریافت فعلی تکمیل می‌شود؛ زمان‌بندی خاموش است'):s.lastError?s.lastError:s.enabled?'دریافت خودکار فعال است':'دریافت خودکار متوقف است';
- $('nextFetch').textContent=s.enabled&&s.nextFetchAt&&!s.fetching?`دریافت بعدی: ${new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(s.nextFetchAt*1000))}`:'';
- if(lastSaved){const age=Math.max(0,Math.floor((Date.now()/1000-lastSaved.cache.fetchedAt)/60));$('cacheAge').textContent=lastSaved.cache.dateMismatch?`داده ذخیره‌شده مربوط به ${isolate(lastSaved.cache.snapshotDate)} است؛ منتظر داده امروز باشید.`:`عمر داده ذخیره‌شده: ${fmt(age)} دقیقه`}
- else $('cacheAge').textContent='هنوز داده‌ای ذخیره نشده است';
-}
-let changingInterval=false;
-async function changeInterval(minutes){
- if(changingInterval)return;changingInterval=true;
- document.querySelectorAll('[data-interval]').forEach(b=>b.disabled=true);
- try{
-  const response=await fetch(`/api/interval/${minutes}`,{method:'POST',headers:{'X-Dashboard-Request':'1'}});
-  if(!response.ok)throw Error();lastFetchStatus=await response.json();renderFetchStatus();
- }catch{$('fetchState').textContent='فاصله دریافت ذخیره نشد؛ دوباره تلاش کنید'}
- finally{changingInterval=false;document.querySelectorAll('[data-interval]').forEach(b=>b.disabled=!lastFetchStatus)}
-}
-async function updateFetchStatus(){
- try{const response=await fetch('/api/status',{cache:'no-store'});if(!response.ok)throw Error();lastFetchStatus=await response.json();renderFetchStatus();$('autoFetch').disabled=false}
- catch{$('fetchState').textContent='وضعیت دریافت خودکار در دسترس نیست';$('fetchState').classList.add('problem')}
-}
-async function toggleAutomatic(){
- if(!lastFetchStatus)return;const button=$('autoFetch');button.disabled=true;
- try{const response=await fetch(lastFetchStatus.enabled?'/api/auto/off':'/api/auto/on',{method:'POST',headers:{'X-Dashboard-Request':'1'}});if(!response.ok)throw Error();lastFetchStatus=await response.json();renderFetchStatus()}
- catch{$('fetchState').textContent='تغییر وضعیت ذخیره نشد؛ دوباره تلاش کنید'}finally{button.disabled=false}
-}
 let forcingRefresh=false;
 async function forceRefresh(){
  if(forcingRefresh)return;forcingRefresh=true;
@@ -160,7 +110,7 @@ async function forceRefresh(){
    await new Promise(resolve=>setTimeout(resolve,1000));
    const response=await fetch('/api/status',{cache:'no-store'});
    if(!response.ok)throw Error('ارتباط با سرویس دریافت قطع شد.');
-   lastFetchStatus=await response.json();renderFetchStatus();
+   lastFetchStatus=await response.json();
    if(lastFetchStatus.completedRequestAt>=request.requestedAt){
     if(lastFetchStatus.lastError)throw Error(lastFetchStatus.lastError);
     await refresh(true);break;
@@ -171,8 +121,7 @@ async function forceRefresh(){
  finally{forcingRefresh=false;button.disabled=false;button.classList.remove('loading');$('buttonText').textContent='بروزرسانی داده‌ها'}
 }
 async function refresh(quiet=false){return refreshPreparedSnapshot(quiet)}
-$('refresh').addEventListener('click',forceRefresh);$('autoFetch').addEventListener('click',toggleAutomatic);
-document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>changeInterval(Number(b.dataset.interval))));
+$('refresh').addEventListener('click',forceRefresh);
 $('locationsToggle').addEventListener('click',()=>{const panel=$('locationPanel'),open=panel.hidden;panel.hidden=!open;$('locationsToggle').setAttribute('aria-expanded',String(open));if(open)$('locationSearch').focus()});
 $('locationSearch').addEventListener('input',e=>renderLocationButtons(e.target.value));
 
