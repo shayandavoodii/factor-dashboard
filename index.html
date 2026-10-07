@@ -100,7 +100,7 @@ function draw(data){
  const days=data.days,mean=data.mean,today=days.find(d=>d.today);
  renderInventoryFilters(data);
  $('today').textContent=fmt(today.count);
- $('todayNote').textContent=`${isolate(today.persian)} · پایگاه فروش · تا ${isolate(data.windowEnd)}`;
+ $('todayNote').textContent=`${isolate(today.persian)} · بدون فیلتر ساعت · داده امروز هنوز کامل نیست`;
  $('mean').textContent=fmt(mean);$('delta').textContent=percent(today.count,mean);
  $('specialToday').textContent=fmt(today.selectedCount);
  $('specialTodayNote').textContent=$('todayNote').textContent;
