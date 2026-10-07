@@ -119,7 +119,6 @@ function setupComparison(){
  second.querySelectorAll('label').forEach(el=>el.htmlFor=el.htmlFor.replace('table','compare'));
  second.querySelectorAll('input').forEach(el=>el.setAttribute('aria-label',el.id==='compareStart'?'شروع بازه دوم':'پایان بازه دوم'));
  const secondTitle=title.cloneNode(true);secondTitle.textContent='بازه دوم · مقایسه با بازه اول';second.prepend(secondTitle);first.after(second);
- setupHourSlider(first,'first');setupHourSlider(second,'second');
  for(const id of ['compareStart','compareEnd'])$(id).addEventListener('input',()=>{
   const a=$('compareStart'),b=$('compareEnd');if(Number(a.value)>Number(b.value)){if(id==='compareStart')b.value=a.value;else a.value=b.value}
   updateComparisonSlider();loadInventoryTable();try{sessionStorage.setItem('factor-compare-range',JSON.stringify(readComparisonRange()))}catch{}
@@ -180,7 +179,7 @@ function renderComparedTable(a,b){
  $('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`بازه اول: ${tablePayload.dates[a]} تا ${tablePayload.dates[b]} · بازه دوم: ${tablePayload.dates[c]} تا ${tablePayload.dates[d]}`;
 }
 
-function hourRange(name){return [Number($(name+'HourStart').value),Number($(name+'HourEnd').value)]}
+function hourRange(name){return [0,23]}
 function setupHourSlider(parent,name){
  const box=document.createElement('div');box.className='hour-window';
  const labels=document.createElement('div');labels.className='hour-window-labels';
@@ -203,6 +202,7 @@ function setupHourSlider(parent,name){
 }
 function saveHourRange(name){try{const [start,end]=hourRange(name);sessionStorage.setItem('factor-hours-'+name,JSON.stringify({start,end,followEnd:String(end)===$(name+'HourEnd').max}))}catch{}}
 function restoreHourRanges(){
+ return; // Hour selections from older browser sessions no longer apply.
  const maximum=Math.max(0,Math.min(23,Math.floor((tablePayload?.cutoffSeconds||0)/3600)));
  for(const name of ['first','second']){
   let saved;try{saved=JSON.parse(sessionStorage.getItem('factor-hours-'+name)||'null')}catch{}
@@ -272,7 +272,7 @@ function chartForScope(scope){
  const view=scope.mode==='selection'?combineInventoryCharts(scope):snapshotBundle.charts[snapshotKey(scope)],base=snapshotBundle.chartTemplate;
  if(!view||!base)return null;
  const days=base.days.map((d,i)=>({...d,count:view.counts[i],selectedCount:view.selectedCounts[i],hours:d.hours.map((h,j)=>({...h,count:view.hours[i][j],selectedCount:view.selectedHours[i][j]}))}));
- const history=days.filter(d=>!d.today),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
+ const history=days.filter(d=>!d.today&&!d.future),mean=k=>history.length?history.reduce((a,d)=>a+d[k],0)/history.length:0;
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  return {...base,days,inventoryFilter:view.filter,mean:mean('count'),selectedMean:mean('selectedCount'),cache:{fetchedAt:snapshotBundle.fetchedAt,snapshotDate:days.at(-1).date,dateMismatch:days.at(-1).date!==today}};
 }
@@ -369,7 +369,7 @@ const chartView={data:null,start:0,span:10,scale:1,latest:true,initialized:false
 const chartMonthKey=date=>String(date).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g,'').slice(0,6);
 // Same least-squares fit as Prime's rhythmTrend, using only visible daily points.
 function chartTrend(days,first,last){
- const points=[];for(let i=first;i<=last;i++){const value=days[i]?.count;if(typeof value==='number'&&Number.isFinite(value))points.push([i,value])}
+ const points=[];for(let i=first;i<=last;i++){const value=days[i]?.count;if(!days[i]?.future&&typeof value==='number'&&Number.isFinite(value))points.push([i,value])}
  if(points.length<2)return null;
  const center=points.reduce((s,p)=>s+p[0],0)/points.length,mean=points.reduce((s,p)=>s+p[1],0)/points.length;
  let numerator=0,denominator=0;for(const [x,y] of points){numerator+=(x-center)*(y-mean);denominator+=(x-center)**2}
