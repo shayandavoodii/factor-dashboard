@@ -306,7 +306,7 @@ function selectSnapshotFilter(mode,value='',event={}){
 }
 function installSnapshot(bundle){
  const previousComparison=readComparisonRange();
- snapshotBundle=bundle;additiveScopeCache.clear();const next=bundle.table;
+ window.updateMonthlyMonitor?.(bundle);snapshotBundle=bundle;additiveScopeCache.clear();const next=bundle.table;
  if(next){
   const a=$('tableStart'),b=$('tableEnd'),oldStart=tablePayload?.dates[Number(a.value)],oldEnd=tablePayload?.dates[Number(b.value)],followEnd=!tableInitialized||Number(b.value)===Number(b.max);
   tablePayload={...next,totalDays:next.dates.length};
