@@ -142,7 +142,8 @@ function updateDualSlider(){const a=$('tableStart'),b=$('tableEnd'),max=Number(a
 function renderInventoryTable(d){const fragment=document.createDocumentFragment();for(const x of d.rows){const tr=document.createElement('tr');for(const [i,value] of [x.name||x.id,x.state||'—',x.manager||'—',x.supervisor||'—'].entries()){const td=document.createElement(i===0?'th':'td');if(i===0)td.scope='row';td.textContent=value;tr.append(td)}for(const key of ['low','mid','high','veryhigh']){const n=x[key]||0,p=x.total?100*n/x.total:0,td=document.createElement('td'),cell=document.createElement('div'),count=document.createElement('b'),percent=document.createElement('small'),track=document.createElement('i'),bar=document.createElement('em');cell.className='range-cell';count.textContent=fmt(n);percent.textContent=fmt(p)+'٪';bar.style.width=`${Math.max(0,Math.min(100,p))}%`;track.setAttribute('aria-hidden','true');track.append(bar);cell.append(count,percent,track);td.append(cell);tr.append(td)}const total=document.createElement('td'),badge=document.createElement('b');badge.className='table-total';badge.textContent=fmt(x.total||0);total.append(badge);tr.append(total);fragment.append(tr)}if(!d.rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.className='table-empty';td.textContent='برای این بازه و شعب انتخاب‌شده، داده‌ای وجود ندارد.';tr.append(td);fragment.append(tr)}$('inventoryTableBody').replaceChildren(fragment);$('tableRange').classList.remove('error');$('tableRange').textContent=`${d.startDate} تا ${d.endDate}`}
 </script>
 <script>// Compact, local-only filtering: editing a menu never requests source data.
-function excelMenu(host,{title,items,selected,multiple=true,apply}){
+class ExcelFilter {
+constructor(host,{title,items,selected,multiple=true,apply}){
  host.classList.add('excel-filter');
  const trigger=document.createElement('button');trigger.type='button';trigger.className='excel-trigger';trigger.setAttribute('aria-expanded','false');
  trigger.setAttribute('aria-label',title);
@@ -173,8 +174,11 @@ function excelMenu(host,{title,items,selected,multiple=true,apply}){
  search.addEventListener('input',render);allBox.addEventListener('change',()=>{visible().forEach(item=>allBox.checked?draft.add(item.id):draft.delete(item.id));render()});
  ok.addEventListener('click',()=>{apply([...draft]);updateLabel();close()});cancel.addEventListener('click',close);
  document.addEventListener('excel-close',close);document.addEventListener('pointerdown',event=>{if(!host.contains(event.target)&&!panel.hidden)close()});panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close()}});
- updateLabel();return {updateLabel,close};
+ this.updateLabel=updateLabel;this.close=close;
+ updateLabel();
 }
+}
+function excelMenu(host,options){return new ExcelFilter(host,options)}
 let branchMenus=null;
 function setupExcelInventoryFilters(){
  const cards=document.querySelector('.cards');for(const [id,title] of [['averageNetCard','میانگین خالص هر فاکتور · کل دوره'],['lastNetCard','میانگین خالص هر فاکتور · آخرین روز']]){const card=document.createElement('div');card.className='card';const heading=document.createElement('div');heading.className='label';const headingText=document.createElement('b');headingText.textContent=title;heading.append(headingText);const value=document.createElement('div');value.className='value';value.id=id;value.textContent='—';const unit=document.createElement('span');unit.className='note';unit.textContent='تومان';card.append(heading,value,unit);cards.append(card)}
